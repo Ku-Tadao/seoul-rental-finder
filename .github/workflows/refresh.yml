@@ -1,7 +1,8 @@
 name: Refresh listings
 on:
   schedule:
-    - cron: '23 1,9,17 * * *'
+    # 07:23, 12:23 and 19:23 in Seoul: overnight, morning and end-of-day listings. At least 5h apart so backfill runs barely queue.
+    - cron: '23 22,3,10 * * *'
   workflow_dispatch:
     inputs:
       minutes:

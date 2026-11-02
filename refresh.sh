@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# One scrape: both sites side by side, each refreshing its listing ids at most once a day and fetching details only for new ids.
+# One scrape: both sites side by side, fetching details only for new ids. Dabang's list takes minutes so it refreshes every run; Zigbang's takes hours so it refreshes daily.
 BOX=37.25,126.6,37.8,127.4
 dabang() {
-  if [ -z "$(find dabang_rentals.json -mmin -1200 2>/dev/null)" ]; then
+  if [ -z "$(find dabang_rentals.json -mmin -240 2>/dev/null)" ]; then
     rm -f next.json; ok=1
     for c in apt officetel; do for t in MONTHLY_RENT LEASE; do
       node dabang_export.js --category $c --types $t --bbox $BOX --level list --out next.json 2>/dev/null || ok=0
