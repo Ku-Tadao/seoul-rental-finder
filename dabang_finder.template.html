@@ -3,345 +3,493 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light dark">
 <title>Seoul Rental Value Finder</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-/* Layout: a property-search tool. Filters in a fixed sidebar, ranked listing cards with the photo first and the value verdict at the right edge. */
 :root {
-  --bg: #f3f5f8; --surface: #ffffff; --ink: #161b26; --muted: #5c6575; --line: #e0e4ea; --fill: #e8ebf0;
-  --accent: #2447c8; --accent-soft: #e8edfc;
-  --good: #12764f; --good-soft: #e0f3ea; --warn: #8f5a00; --warn-soft: #fbf0dc; --star: #b97a00;
-  --sans: "Schibsted Grotesk", "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --bg: #F7F5F1; --surface: #FFFFFF; --ink: #1F1C17; --muted: #6A6358; --line: #E4DED3; --chip: #ECE7DE; --soft: #F3EFE8; --ph: #ECE7DE; --btn: #1F1C17; --btn-ink: #FFFFFF;
+  --good: #17693F; --warn: #8A5000; --on-photo: rgb(255 255 255 / .92); --photo-ink: #1F1C17;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0f1219; --surface: #171b24; --ink: #e9ecf2; --muted: #98a1b2; --line: #2a303c; --fill: #232834;
-  --accent: #8aa4ff; --accent-soft: #1e2742;
-  --good: #5fd3a4; --good-soft: #12302a; --warn: #e9b766; --warn-soft: #33280f; --star: #f2c14e; color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #0f1219; --surface: #171b24; --ink: #e9ecf2; --muted: #98a1b2; --line: #2a303c; --fill: #232834;
-  --accent: #8aa4ff; --accent-soft: #1e2742;
-  --good: #5fd3a4; --good-soft: #12302a; --warn: #e9b766; --warn-soft: #33280f; --star: #f2c14e; color-scheme: dark }
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #171512; --surface: #211E1A; --ink: #F2EEE6; --muted: #A9A093; --line: #37322B; --chip: #2B2722; --soft: #2B2722; --ph: #2B2722; --btn: #F2EEE6; --btn-ink: #1F1C17;
+  color-scheme: dark } }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--sans); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--sans); -webkit-text-size-adjust: 100%; }
 [hidden] { display: none !important; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.wrap { max-width: 1280px; margin: 0 auto; padding-block: 28px 56px; display: grid; gap: 20px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+h1, h2, h3, p { margin: 0; }
 
-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 24px; }
-h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
-.sub { color: var(--muted); margin: 0; font-size: 0.87rem; }
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px var(--gutter-r) 8px var(--gutter-l); }
+h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.saved { flex: none; display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); font-size: 14px; font-weight: 600; }
+.saved[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
+.chips { position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 8px var(--gutter-r) 8px var(--gutter-l); background: var(--bg); }
+.chips::-webkit-scrollbar { display: none; }
+.chips button { flex: none; height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); font-size: 14px; font-weight: 600; }
+.chips button.on { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
 
-.how { background: var(--accent-soft); border-radius: 8px; padding: 12px 16px; font-size: 0.9rem; }
-.how summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; list-style: none; }
-.how summary::-webkit-details-marker { display: none; }
-.how .eq { font-weight: 500; min-width: 0; }
-.how .eq b { font-weight: 700; color: var(--accent); }
-.how .more-link { color: var(--accent); font-size: 0.82rem; font-weight: 500; white-space: nowrap; margin-left: auto; }
-.how[open] .more-link::after { content: " (hide)"; }
-.how p { margin: 10px 0 0; max-width: 78ch; color: var(--muted); font-size: 0.87rem; }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sort { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.sort select { min-width: 0; max-width: 100%; height: 44px; padding: 0 2px; border: 0; background: none; font-size: 14px; font-weight: 600; text-overflow: ellipsis; }
+.info { flex: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 44px; padding: 0; border: 0; background: none; }
+.seg { flex: none; display: flex; padding: 3px; border-radius: 12px; background: var(--chip); }
+.seg button { height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: none; font-size: 14px; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--surface); font-weight: 600; }
+.count { color: var(--muted); font-size: 14px; }
 
-.layout { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 20px; align-items: start; }
-.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: grid; }
-.rail-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; font-weight: 600; }
-.group { display: grid; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--line); }
-.group h2 { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0; font-weight: 600; }
-.stack { display: grid; gap: 12px; }
-.ctl { display: grid; gap: 4px; }
-.ctl .top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.87rem; }
-.ctl output { font-weight: 600; font-size: 0.84rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
-input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height: 18px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chips label { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: 0.84rem; cursor: pointer; user-select: none; }
-.chips input { position: absolute; opacity: 0; width: 0; height: 0; }
-.chips label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 500; }
-.chips label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.check { display: flex; gap: 8px; font-size: 0.85rem; align-items: flex-start; cursor: pointer; color: var(--muted); }
-.check input { accent-color: var(--accent); margin: 3px 0 0; flex: none; }
-details.areas summary { cursor: pointer; font-size: 0.87rem; }
-details.areas h3 { font-size: 0.78rem; margin: 12px 0 6px; color: var(--muted); font-weight: 600; }
-input[type=search] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.87rem; }
-select { font: inherit; font-size: 0.87rem; padding: 6px 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
-button { font: inherit; font-size: 0.87rem; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
-button:hover { border-color: var(--accent); }
-.link { border: 0; padding: 0; background: none; color: var(--accent); font-size: 0.84rem; font-weight: 500; }
-.toggle { display: none; }
+.layout { display: block; padding: 0 var(--gutter-r) 32px var(--gutter-l); }
+main { display: grid; gap: 12px; min-width: 0; }
+#list { display: grid; gap: 16px; }
 
-.summary { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline; margin-bottom: 12px; }
-.summary .big { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.01em; }
-.summary span { color: var(--muted); font-size: 0.85rem; }
-.sortbox { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.sortbox label { font-size: 0.85rem; color: var(--muted); }
+/* Card */
+.card { position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.photo { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 15px 15px 0 0; background: var(--ph); display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
+.photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.badge { padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 700; color: #FFFFFF; background: var(--good); }
+.badge.above { background: var(--warn); }
+.badge.none { background: var(--muted); }
+.photo .badge { position: absolute; left: 12px; bottom: 12px; }
+.open { position: absolute; inset: 0; z-index: 1; border-radius: 16px; }
+.star { position: absolute; top: 8px; right: 8px; z-index: 2; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 22px; background: var(--on-photo); color: var(--photo-ink); }
+.star svg, .tbar .fav svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+[data-fav][aria-pressed="true"] svg { fill: currentColor; }
+.cbody { display: flex; flex-direction: column; gap: 6px; padding: 14px; min-width: 0; }
+.line1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+.line1 small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.term { position: relative; z-index: 2; padding: 0; border: 0; border-bottom: 1px dotted var(--muted); background: none; font: inherit; letter-spacing: inherit; cursor: help; }
+.real { font-size: 15px; font-weight: 600; }
+.ttl { margin-top: 4px; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta { font-size: 14px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
+.card.gone { opacity: .55; }
+.card.gone .photo img { filter: grayscale(1); }
 
-#list { display: grid; gap: 10px; }
-.card { display: grid; grid-template-columns: 184px minmax(0, 1fr) 216px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; position: relative; transition: border-color 0.12s; }
-.card:hover { border-color: var(--accent); }
-.open { color: inherit; text-decoration: none; }
-.open::after { content: ""; position: absolute; inset: 0; border-radius: 8px; }
-.open:focus-visible { outline: 0; }
-.open:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; }
-.fav { padding: 0 7px; font-size: 1rem; line-height: 1.5; border-radius: 5px; color: var(--muted); background: var(--surface); }
-.fav[aria-pressed="true"] { color: var(--star); border-color: var(--star); }
-.photo .fav { position: absolute; z-index: 2; top: 6px; right: 6px; }
-.photo { position: relative; min-height: 138px; background: var(--fill); color: var(--muted); font-size: 0.78rem; display: grid; place-items: center; }
-.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-.rank { position: absolute; z-index: 1; top: 8px; left: 8px; min-width: 24px; padding: 1px 6px; border-radius: 5px; background: var(--surface); color: var(--ink); font-size: 0.76rem; font-weight: 600; text-align: center; }
-.body { padding: 13px 16px; min-width: 0; display: grid; gap: 3px; align-content: center; }
-.price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
-.price strong { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
-.price small { color: var(--muted); font-size: 0.78rem; }
-.place { font-size: 0.92rem; overflow-wrap: anywhere; }
-.place b { font-weight: 600; }
-.facts { display: flex; flex-wrap: wrap; gap: 0 12px; color: var(--muted); font-size: 0.84rem; }
-.facts .old { color: var(--warn); font-weight: 500; }
-.ttl { color: var(--muted); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
-.flags span { font-size: 0.72rem; font-weight: 500; padding: 0 6px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); }
-.verdict { padding: 13px 16px; border-left: 1px solid var(--line); display: grid; gap: 8px; align-content: center; }
-.stat label { display: block; font-size: 0.72rem; color: var(--muted); }
-.stat .n { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
-.stat .n small { font-size: 0.76rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
-.stat .n.sec { font-size: 0.98rem; font-weight: 600; }
-.stat p { margin: 1px 0 0; font-size: 0.73rem; color: var(--muted); line-height: 1.35; }
-.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 1px 7px; border-radius: 4px; margin-top: 3px; background: var(--fill); color: var(--muted); }
-.pill.good { background: var(--good-soft); color: var(--good); }
-.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 16px; }
+.foot { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 78ch; margin-top: 12px; }
 
-.empty { padding: 40px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
-.more { display: block; margin: 16px auto 0; }
-.favbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
-.favbar .check { color: var(--ink); align-items: center; }
-.favbar .check input { margin: 0; }
+/* Help bubble */
+#tip { position: fixed; inset: auto; margin: 0; max-width: min(300px, calc(100vw - 32px)); padding: 10px 12px; border: 0; border-radius: 10px; font-size: 14px; line-height: 1.4; background: var(--btn); color: var(--btn-ink); }
 
+/* Filters */
+aside { display: none; }
+#secHome { display: flex; flex-direction: column; gap: 20px; }
+.sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sec > h3 { font-size: 15px; font-weight: 700; }
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.ctl label { font-weight: 500; }
+.ctl label[title] { text-decoration: underline dotted var(--muted); text-underline-offset: 3px; cursor: help; }
+.ctl output { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+input[type=range] { width: 100%; height: 28px; margin: 0; accent-color: var(--ink); }
+.pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.pick label { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 18px; font-size: 14px; cursor: pointer; user-select: none; }
+.pick input { position: absolute; opacity: 0; width: 0; height: 0; }
+.pick label:has(input:checked) { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); font-weight: 600; }
+.pick label:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+.prov { display: flex; align-items: center; justify-content: space-between; min-height: 36px; width: 100%; padding: 0; border: 0; background: none; font-size: 14px; font-weight: 700; text-align: left; }
+.prov span { font-weight: 500; color: var(--muted); }
+input[type=search] { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 16px; }
+.check { display: flex; gap: 8px; min-height: 28px; font-size: 14px; align-items: flex-start; cursor: pointer; }
+.check input { accent-color: var(--ink); margin: 4px 0 0; flex: none; width: 16px; height: 16px; }
+.place { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 4px 0 12px; border-radius: 10px; font-size: 14px; font-weight: 600; background: var(--chip); }
+.place button { height: 40px; padding: 0 8px; border: 0; background: none; font-size: 14px; font-weight: 500; color: var(--muted); }
+#placeHits { display: grid; }
+#placeHits button { min-height: 44px; padding: 4px 8px; border: 0; border-bottom: 1px solid var(--line); background: none; font-size: 14px; text-align: left; }
+#placeHits small { color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); }
+.plain { border: 0; padding: 0; background: none; font-weight: 600; }
+
+/* Bottom sheet */
+#sheet { width: 100%; max-width: 100%; margin: auto 0 0; padding: 0; max-height: 86dvh; border: 0; border-radius: 20px 20px 0 0; background: var(--surface); color: var(--ink); }
+#sheet::backdrop, #detail::backdrop { background: rgb(20 18 15 / .5); }
+.sheet-in { display: flex; flex-direction: column; gap: 18px; padding: 10px var(--gutter-r) max(20px, env(safe-area-inset-bottom, 0px)) var(--gutter-l); }
+.handle { align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--line); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.sheet-head h2 { font-size: 20px; font-weight: 700; outline: 0; }
+.sheet-head button { height: 44px; padding: 0 4px; }
+.sheet-in .sec > h3 { display: none; }
+.primary { display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; border: 0; border-radius: 12px; font-weight: 600; text-decoration: none; background: var(--btn); color: var(--btn-ink); }
+
+/* Listing */
 body:has(dialog[open]) { overflow: hidden; }
-dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
-dialog::backdrop { background: rgb(8 10 16 / 0.6); }
-.dbar { position: sticky; top: 0; z-index: 3; display: flex; gap: 8px; justify-content: flex-end; padding: 8px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
-.dbar .fav { font-size: 0.87rem; padding: 6px 12px; }
-.dbar .close { padding: 6px 12px; }
-.dbody { padding: 16px 20px 24px; display: grid; gap: 18px; min-width: 0; }
-.gallery-box { position: relative; margin: -16px -20px 0; }
-.gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: var(--fill); aspect-ratio: 16 / 9; max-height: 56vh; width: 100%; }
-.gallery img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: contain; scroll-snap-align: start; }
-.gallery-box > button { position: absolute; top: 50%; translate: 0 -50%; padding: 8px 12px; }
-.gallery-box .prev { left: 10px; }
-.gallery-box .next { right: 10px; }
-.nophoto { padding: 28px; text-align: center; color: var(--muted); background: var(--fill); margin: -16px -20px 0; }
-.dhead { display: grid; gap: 4px; }
-.dhead h2 { margin: 0; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
-.dhead .place { font-size: 1rem; }
-.dhead p { margin: 0; color: var(--muted); font-size: 0.87rem; overflow-wrap: anywhere; }
-.dstats { display: flex; flex-wrap: wrap; gap: 12px 32px; }
-.dsec { display: grid; gap: 8px; min-width: 0; }
-.dsec h3 { margin: 0; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
-.dfacts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 20px; margin: 0; }
-.dfacts dt { font-size: 0.74rem; color: var(--muted); }
-.dfacts dd { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
-.memo { margin: 0; white-space: pre-line; font-size: 0.9rem; max-width: 72ch; overflow-wrap: anywhere; }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.tags span { font-size: 0.8rem; padding: 2px 8px; border-radius: 5px; background: var(--fill); }
-.map { position: relative; overflow: hidden; height: 340px; border-radius: 8px; background: var(--fill); }
+#detail { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; padding: 0; border: 0; background: var(--surface); color: var(--ink); overflow-y: auto; }
+.tbar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: max(6px, env(safe-area-inset-top, 0px)) 8px 6px; background: var(--surface); }
+.tbar button { flex: none; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; }
+.tbar div { flex: 1 1 0; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gallery-box { position: relative; background: var(--ph); }
+.gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; aspect-ratio: 4 / 3; width: 100%; }
+.gallery::-webkit-scrollbar { display: none; }
+.gallery img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; scroll-snap-stop: always; }
+.nophoto { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); background: var(--ph); }
+.arrow { position: absolute; top: 50%; margin-top: -22px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 22px; background: var(--on-photo); color: var(--photo-ink); }
+.arrow.prev { left: 8px; }
+.arrow.next { right: 8px; }
+.counter { position: absolute; right: 12px; bottom: 12px; padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #FFFFFF; background: rgb(20 18 15 / .78); }
+.dbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 18px var(--gutter-r) max(24px, env(safe-area-inset-bottom, 0px)) var(--gutter-l); align-items: start; }
+.dcol { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.dsec { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.dsec h2 { font-size: 18px; font-weight: 700; }
+.dsec h3 { margin-top: 8px; font-size: 15px; font-weight: 700; }
+.dhead { gap: 8px; }
+.dhead .badge { align-self: flex-start; }
+.bigprice { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; font-size: 30px; font-weight: 700; letter-spacing: -0.015em; }
+.bigprice small { font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.bigreal { font-size: 17px; font-weight: 600; }
+.muted { color: var(--muted); }
+.how { margin-top: 4px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 10px 0; }
+.how summary { min-height: 28px; font-weight: 600; cursor: pointer; }
+.pairs { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; font-variant-numeric: tabular-nums; }
+.how .pairs { margin-top: 8px; }
+.pairs b { font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tiles div { display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; border-radius: 12px; background: var(--soft); min-width: 0; }
+.tiles b { font-size: 16px; font-weight: 700; }
+.tiles span { font-size: 13px; line-height: 1.3; color: var(--muted); }
+.map { position: relative; overflow: hidden; height: 240px; border-radius: 12px; background: var(--soft); }
 /* Kakao's search panel takes the left 405px of its page and the pin is centred in the rest, so the frame is oversized and the panel pushed out of view. */
 .map iframe { position: absolute; top: 0; left: -410px; width: calc(100% + 410px); height: 100%; border: 0; }
 .phone .map { height: 380px; }
 .phone .map iframe { left: 0; width: 100%; } /* Kakao serves phones a layout with no side panel */
-.dlinks { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.87rem; }
-.dlinks a { color: var(--accent); font-weight: 500; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.links a { display: flex; align-items: center; height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; font-weight: 600; text-decoration: none; }
+.memohead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.memohead a { display: flex; align-items: center; height: 44px; font-weight: 600; }
+.memo { white-space: pre-line; overflow-wrap: anywhere; }
+.fact { display: flex; flex-direction: column; gap: 6px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.fact > div { display: flex; justify-content: space-between; gap: 16px; }
+.fact span:first-child { color: var(--muted); flex: none; }
+.fact .v { font-weight: 500; text-align: right; overflow-wrap: anywhere; }
+.fact button.v { padding: 0; border: 0; border-bottom: 1px dotted var(--muted); background: none; cursor: help; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tags button { min-height: 36px; padding: 0 12px; border: 1px dotted var(--muted); border-radius: 18px; background: none; font-size: 14px; cursor: help; }
 
-.foot { color: var(--muted); font-size: 0.8rem; margin: 18px 0 0; max-width: 78ch; }
+/* Map view */
+#mapWrap { position: relative; height: calc(100dvh - var(--map-top, 180px)); min-height: 320px; border-radius: 16px; overflow: hidden; background: var(--soft); isolation: isolate; }
+#map { position: absolute; inset: 0; font: inherit; }
+.mapnote { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--muted); }
+#map .cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--btn); color: var(--btn-ink); font-size: 13px; font-weight: 700; box-shadow: 0 0 0 3px rgb(255 255 255 / .55); }
+.pin { border-radius: 50%; border: 2px solid #FFFFFF; background: var(--good); box-shadow: 0 1px 3px rgb(0 0 0 / .4); }
+.pin.above { background: var(--warn); }
+#mini { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1000; max-width: 420px; display: grid; grid-template-columns: 112px minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+#mini .mphoto { background: var(--ph); min-height: 112px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); text-align: center; }
+#mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#mini .cbody { gap: 2px; padding: 10px 12px; }
+#mini .line1 { font-size: 17px; }
+#mini .real { font-size: 14px; }
+#mini .ttl { margin-top: 0; font-size: 14px; }
+@media (prefers-color-scheme: dark) { .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.9); } }
 
-@media (max-width: 1080px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
-  .rail { position: static; max-height: none; }
-  .rail.closed > :not(.toggle) { display: none; }
-  .toggle { display: block; margin: 12px 16px; }
-  .rail:not(.closed) .toggle { margin-bottom: 0; }
-  .rail.closed { border: 0; background: none; }
-  .rail.closed .toggle { margin: 0; }
+/* Saved */
+.savedhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.savedhead h2 { font-size: 22px; font-weight: 700; }
+.savedhead button { height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-weight: 600; }
+#compare { display: none; }
+
+@media (min-width: 720px) {
+  #detail { width: min(1040px, calc(100vw - 48px)); height: auto; max-height: calc(100dvh - 48px); margin: auto; border-radius: 18px; }
+  .gallery, .nophoto { aspect-ratio: 2 / 1; }
+  .dbody { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; padding: 24px 32px 32px; }
+  .phone .map { height: 240px; }
 }
-@media (max-width: 720px) {
-  .wrap { padding-block: 18px 40px; }
-  .how .more-link { margin-left: 0; }
-  .sortbox { margin-left: 0; }
-  .card { grid-template-columns: 112px minmax(0, 1fr); }
-  .photo { min-height: 112px; }
-  .body { padding: 10px 12px; }
-  dialog { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; border: 0; border-radius: 0; }
-  .dbody { padding: 12px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
-  .gallery-box, .nophoto { margin: -12px calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); }
-  .map { height: 280px; }
-  .verdict { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-content: start; border-left: 0; border-top: 1px solid var(--line); padding: 10px 12px; }
+@media (min-width: 900px) {
+  .top { padding: 14px 32px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  h1 { font-size: 20px; }
+  .topright { display: flex; align-items: center; gap: 12px; }
+  .chips { display: none; }
+  .layout { display: flex; align-items: flex-start; gap: 24px; padding: 24px 32px 40px; }
+  aside { display: flex; flex-direction: column; gap: 20px; flex: 0 0 300px; position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+  .ahead { display: flex; align-items: center; justify-content: space-between; }
+  .ahead h2 { font-size: 17px; font-weight: 700; }
+  .ahead button { height: 36px; }
+  main { flex: 1 1 0; }
+  #list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+  .sort select { height: 32px; font-size: 15px; }
+  .info { height: 32px; }
+  input[type=search] { height: 40px; font-size: 14px; }
+  [data-view="saved"] aside, [data-view="saved"] .sort, [data-view="saved"] .count { display: none; }
+  [data-view="saved"] #list { display: none; }
+  [data-view="saved"] #compare { display: block; overflow-x: auto; }
+  #compare table { border-collapse: separate; border-spacing: 16px 0; margin: 0 -16px; font-size: 18px; }
+  #compare th, #compare td { width: 320px; min-width: 320px; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 500; vertical-align: top; }
+  #compare th { position: relative; border: 0; padding-top: 0; }
+  #compare .cphoto { position: relative; aspect-ratio: 4 / 3; margin-bottom: 10px; border-radius: 16px; overflow: hidden; background: var(--ph); display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
+  #compare .cphoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #compare .ctitle { font-size: 20px; font-weight: 700; overflow-wrap: anywhere; text-decoration: none; }
+  #compare .ctitle:hover { text-decoration: underline; }
+  #compare small { display: block; font-size: 14px; color: var(--muted); }
+  #compare td b { font-size: 24px; font-weight: 700; }
+  #compare .gone { opacity: .55; }
+  #compare .gone img { filter: grayscale(1); }
 }
-@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+@media (max-width: 899.98px) { [data-view="saved"] .chips, [data-view="saved"] .sort, [data-view="saved"] .count { display: none; } [data-view="saved"] .bar { justify-content: flex-end; } }
+@media (prefers-reduced-motion: reduce) { .gallery { scroll-behavior: auto; } }
 </style>
 
-<div class="wrap">
-  <header>
-    <h1>Seoul Rental Value Finder</h1>
-    <p class="sub" id="sub"></p>
-  </header>
+<header class="top">
+  <h1>Seoul Rental Value Finder</h1>
+  <div class="topright">
+    <span id="segTop"></span>
+    <button class="saved" id="saved" type="button" aria-pressed="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>
+      <span id="savedN">Saved 0</span>
+    </button>
+  </div>
+</header>
+<nav class="chips" id="chips" aria-label="Filters"></nav>
 
-  <details class="how">
-    <summary><span class="eq">Value = (rent + maintenance + deposit × <b id="fR"></b> ÷ 12) ÷ usable m² × (1 + <b id="fP"></b> × age ÷ 10). Lower is better.</span><span class="more-link">How this works</span></summary>
-    <p>You get a deposit back, so only the cost of having that money locked up counts: loan interest or lost savings. The default rate is what the listings themselves imply when jeonse and monthly offers exist in the same complex at the same size. Set it to your own rate under Formula settings.</p>
-    <p>Old buildings bring problems the rent doesn't show, so age makes them earn their place. At the default, a 30-year-old building counts as 1.9× as expensive per m² as a new one, and anything older is hidden. Both are preferences, not measurements, so set them to taste. Age is years since the building's official approval date (사용승인일).</p>
-  </details>
-
-  <div class="layout">
-    <aside class="rail closed" id="rail">
-      <button class="toggle" id="toggle" type="button">Show filters</button>
-      <div class="rail-head"><span>Filters</span><button class="link" type="button" id="reset">Reset all</button></div>
-      <div class="group">
-        <h2>Type</h2>
-        <div class="chips" id="types"></div>
-        <div class="chips" id="sources"></div>
-      </div>
-      <div class="group">
-        <h2>Budget</h2>
-        <div id="budget" class="stack"></div>
-      </div>
-      <div class="group">
-        <h2>Size</h2>
-        <div id="size" class="stack"></div>
-      </div>
-      <div class="group">
-        <h2>Building</h2>
-        <div id="building" class="stack"></div>
-      </div>
-      <div class="group">
-        <h2>Area</h2>
-        <details class="areas" id="areasBox"><summary id="areasSum">All districts</summary><div id="areas"></div></details>
-        <input type="search" id="q" placeholder="Search name, neighbourhood, station, title" aria-label="Search listings">
-        <div id="near" class="stack"></div>
-      </div>
-      <div class="group">
-        <h2>Formula settings</h2>
-        <div id="knobs" class="stack"></div>
-      </div>
-      <div class="group">
-        <h2>Include</h2>
+<div class="layout">
+  <aside id="rail">
+    <div class="ahead"><h2>Filters</h2><button class="plain" type="button" id="reset">Reset</button></div>
+    <div id="secHome">
+      <section class="sec" data-sec="budget" data-title="Budget"><h3>Budget</h3></section>
+      <section class="sec" data-sec="area" data-title="Area"><h3>Area</h3>
+        <input type="search" id="q" placeholder="Search name, neighbourhood, station" aria-label="Search listings">
+        <div id="areas" class="sec"></div>
+      </section>
+      <section class="sec" data-sec="size" data-title="Size"><h3>Size</h3></section>
+      <section class="sec" data-sec="rooms" data-title="Rooms"><h3>Rooms</h3></section>
+      <section class="sec" data-sec="age" data-title="Building age"><h3>Building age</h3></section>
+      <section class="sec" data-sec="places" data-title="Your places"><h3>Your places</h3>
+        <div id="placeList" class="sec"></div>
+        <div id="placeAdd" class="sec">
+          <label for="placeQ" class="note" id="placeLabel">Add a place</label>
+          <input type="search" id="placeQ" placeholder="Search a station" autocomplete="off">
+          <div id="placeHits"></div>
+        </div>
+      </section>
+      <section class="sec" data-sec="more" data-title="More filters"><h3>More filters</h3>
+        <div class="pick" id="types"></div>
+        <div class="pick" id="sources"></div>
         <label class="check"><input type="checkbox" id="hideLow"> Hide low floors (저층, 1st and 2nd)</label>
         <label class="check"><input type="checkbox" id="unknownFee"> Listings with no maintenance figure (estimated from the district median)</label>
         <label class="check"><input type="checkbox" id="unknownAge"> Listings with unknown building age (no age penalty)</label>
         <label class="check"><input type="checkbox" id="partial"> Single rooms in a shared or split unit (their size is misleading)</label>
         <label class="check"><input type="checkbox" id="shortTerm"> Short-term rentals (단기)</label>
         <label class="check"><input type="checkbox" id="lh"> LH public housing (has eligibility rules)</label>
-      </div>
-    </aside>
+        <details id="formula">
+          <summary style="font-weight:600;cursor:pointer;min-height:28px">Adjust the formula</summary>
+          <div class="sec" id="knobs" style="margin-top:12px"></div>
+          <p class="note" style="margin-top:12px">Value = (rent + maintenance + deposit × rate ÷ 12) ÷ usable m² × (1 + penalty × age ÷ 10). Lower is better. You get a deposit back, so only the cost of having that money locked up counts. The default rate is what the listings themselves imply.</p>
+        </details>
+      </section>
+    </div>
+  </aside>
 
-    <main style="min-width:0">
-      <div class="summary" id="summary">
-        <div class="big" id="count"></div>
-        <span id="medCost"></span>
-        <span id="medVal"></span>
-        <div class="favbar">
-          <label class="check"><input type="checkbox" id="favOnly"> <span id="favCount"></span></label>
-          <button class="link" type="button" id="share" hidden>Copy favourites link</button>
-        </div>
-        <div class="sortbox"><label for="sort">Sort</label>
-          <select id="sort">
-            <option value="v">Best value</option>
-            <option value="e">Lowest monthly cost</option>
-            <option value="a">Largest usable size</option>
-            <option value="n">Newest building</option>
-            <option value="d">Lowest deposit</option>
-          </select>
-        </div>
+  <main>
+    <div class="savedhead" id="savedHead" hidden>
+      <h2 id="savedTitle"></h2>
+      <button type="button" id="share">Send to another device</button>
+    </div>
+    <div class="bar">
+      <div class="sort">
+        <select id="sort" aria-label="Sort listings"></select>
+        <button class="info" type="button" aria-label="How the ranking works" data-help="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing. Real monthly cost is rent, maintenance and what the locked-up deposit costs you each month." title="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
+        </button>
       </div>
-      <div id="list"></div>
-      <button class="more" id="more" type="button" hidden>Show 100 more</button>
-      <p class="foot" id="foot"></p>
-    </main>
-  </div>
+      <span id="segBar"></span>
+    </div>
+    <div class="count" id="count"></div>
+    <div id="mapWrap" hidden><div class="mapnote" id="mapNote">Loading the map…</div><div id="map"></div><div id="mini" hidden></div></div>
+    <div id="list"></div>
+    <div id="compare"></div>
+    <div id="sentinel"></div>
+    <p class="foot" id="foot"></p>
+  </main>
 </div>
 
-<dialog id="detail" aria-labelledby="dTitle">
-  <div class="dbar" id="dBar"></div>
-  <div class="dbody" id="dBody"></div>
+<div class="seg" id="seg" role="group" aria-label="View">
+  <button type="button" data-view="list" aria-pressed="true">List</button>
+  <button type="button" data-view="map" aria-pressed="false">Map</button>
+</div>
+
+<dialog id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-in">
+    <div class="handle"></div>
+    <div class="sheet-head"><h2 id="sheetTitle" tabindex="-1" autofocus></h2><button class="plain" type="button" id="sheetReset">Reset</button></div>
+    <div id="sheetBody"></div>
+    <div class="note">Your filters stay saved on this device.</div>
+    <button class="primary" type="button" id="sheetDone">Show listings</button>
+  </div>
 </dialog>
+
+<dialog id="detail" aria-labelledby="dTitle">
+  <div class="tbar" id="dBar"></div>
+  <div id="dBody"></div>
+</dialog>
+
+<div id="tip" popover="auto" role="status"></div>
 
 <script id="data" type="application/json">__DATA__</script>
 <script>
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 
 // Money is stored in 만원 (₩10,000), as both sites give it.
 const won = v => v >= 100 ? '₩' + (+(v / 100).toFixed(2)) + 'M' : '₩' + Math.round(v * 10) + 'k';
+const perM2 = v => '₩' + (v * 10).toFixed(1) + 'k';
+const dist = m => m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m) + ' m';
 const seq = (a, b, s) => { const o = []; for (let i = a; i <= b; i += s) o.push(i); return o; };
 const ANY = Infinity;
 const anyOr = f => v => v === ANY ? 'Any' : f(v);
 
-const SLIDERS = {
-  deposit: { box: 'budget', label: 'Max deposit', fmt: anyOr(won), def: ANY, steps: [0, 100, 300, 500, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 70000, 100000, ANY] },
-  rent: { box: 'budget', label: 'Max monthly rent', fmt: anyOr(won), def: ANY, steps: [0, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 400, 500, 700, 1000, ANY] },
-  fee: { box: 'budget', label: 'Max maintenance', fmt: anyOr(won), def: ANY, steps: [0, 5, 10, 15, 20, 25, 30, 40, 50, 70, 100, ANY] },
-  total: { box: 'budget', label: 'Max real monthly cost', fmt: anyOr(won), def: ANY, steps: [30, 50, 70, 80, 90, 100, 120, 140, 160, 180, 200, 250, 300, 400, 500, 700, 1000, ANY] },
-  beds: { box: 'size', label: 'Min rooms', fmt: v => v ? v + '+' : 'Any', def: 0, steps: [0, 1, 2, 3, 4] },
-  minA: { box: 'size', label: 'Min usable size', fmt: v => v + ' m² · ' + Math.round(v / 3.3058) + '평', def: 0, steps: seq(0, 150, 5) },
-  maxA: { box: 'size', label: 'Max usable size', fmt: anyOr(v => v + ' m² · ' + Math.round(v / 3.3058) + '평'), def: ANY, steps: [...seq(10, 150, 5), 175, 200, ANY] },
-  maxAge: { box: 'building', label: 'Max building age', fmt: anyOr(v => v + ' years'), def: 30, steps: [...seq(0, 40, 5), ANY] },
-  penalty: { box: 'building', label: 'Old-building penalty', fmt: v => v ? '+' + v + '% per 10 yrs' : 'Off', def: DATA.penalty, steps: seq(0, 100, 5) },
-  rate: { box: 'knobs', label: 'Cost of locked-up money', fmt: v => v.toFixed(1) + '% a year', def: DATA.rate, steps: [...new Set([...seq(0, 100, 5).map(x => x / 10), DATA.rate])].sort((a, b) => a - b) },
-  sub: { box: 'near', label: 'Max distance to subway', fmt: anyOr(v => v >= 1000 ? v / 1000 + ' km' : v + ' m'), def: ANY, steps: [200, 300, 400, 500, 700, 1000, 1500, 2000, 3000, ANY] },
+// Hangul to Revised Romanization, syllable by syllable with the sound changes across syllables, so names read in English.
+const ROM_I = ['g', 'kk', 'n', 'd', 'tt', 'r', 'm', 'b', 'pp', 's', 'ss', '', 'j', 'jj', 'ch', 'k', 't', 'p', 'h'];
+const ROM_V = ['a', 'ae', 'ya', 'yae', 'eo', 'e', 'yeo', 'ye', 'o', 'wa', 'wae', 'oe', 'yo', 'u', 'wo', 'we', 'wi', 'yu', 'eu', 'ui', 'i'];
+const ROM_F = ['', 'k', 'k', 'k', 'n', 'n', 'n', 't', 'l', 'k', 'm', 'l', 'l', 'l', 'p', 'l', 'm', 'p', 'p', 't', 't', 'ng', 't', 't', 'k', 't', 'p', 't'];
+const ROM_R = { k: ['ng', 'n'], n: ['l', 'l'], l: ['l', 'l'], m: ['m', 'n'], ng: ['ng', 'n'], p: ['m', 'n'], t: ['n', 'n'] };
+const romCache = new Map();
+function rom(s) {
+  if (romCache.has(s)) return romCache.get(s);
+  let out = '', end = '';
+  for (const ch of s) {
+    const c = ch.charCodeAt(0) - 0xAC00;
+    if (c < 0 || c > 11171) { out += end + ch; end = ''; continue; }
+    let on = ROM_I[c / 588 | 0];
+    if (end) {
+      if (on === '') { end = { k: 'g', t: 'd', l: 'r', p: 'b' }[end] ?? end; }
+      else if (on === 'r') { [end, on] = ROM_R[end]; }
+      else if (on === 'n' || on === 'm') { end = end === 'l' && on === 'n' ? 'l' : { k: 'ng', t: 'n', p: 'm' }[end] ?? end; if (end === 'l' && on === 'n') on = 'l'; }
+    }
+    out += end + on + ROM_V[(c % 588) / 28 | 0];
+    end = ROM_F[c % 28];
+  }
+  out = (out + end).replace(/^./, m => m.toUpperCase());
+  romCache.set(s, out);
+  return out;
+}
+const stationName = n => rom(n.replace(/역$/, '')) + ' Stn';
+const dongText = d => { const m = d.match(/^(.+?)(\d*)(동|읍|면|리|가)(\d+가)?$/); return m ? rom(m[1]) + (m[2] ? ' ' + m[2] : '') + '-' + rom(m[3]).toLowerCase() + (m[4] ? ' ' + m[4].replace('가', '-ga') : '') : rom(d); };
+const districtText = label => /[A-Za-z]/.test(label) ? label.split(' ')[0] : rom(label.replace(/[시군구]$/, ''));
+
+// Korean terms, explained on hover and on tap.
+const HELP = {
+  jeonse: 'Jeonse 전세: one large deposit instead of monthly rent. You get it back when you move out.',
+  wolse: 'Wolse 월세: monthly rent plus a smaller deposit that you get back when you move out.',
+  deposit: 'Deposit 보증금: money you hand over and get back when you move out.',
+  rent: 'Monthly rent 월세.',
+  fee: 'Maintenance 관리비: the monthly building fee.',
+  total: 'Rent, maintenance and what the locked-up deposit costs you each month.',
+  pyeong: '평 (pyeong) is the Korean floor area unit. 1 평 is about 3.3 m².',
+  supply: "Supply size 공급면적 includes shared stairs and corridors, so you can't use all of it.",
+  contract: 'Contract size 계약면적 includes shared areas such as stairs, corridors and parking, so you can\'t use all of it.',
+  stair: '계단식: homes share a stairwell instead of a long corridor. Usually quieter and better ventilated.',
+  corridor: '복도식: homes open onto a long shared corridor. Usually cheaper, with less privacy and airflow.',
+  mixed: '복합식: a mix of stairwell and corridor access in one building.',
+  loan: 'A loan is secured on this home. Check how it gets paid off before paying a deposit, because a large loan puts your deposit at risk.',
 };
+const FACING = { 남: 'South', 남동: 'South-east', 남서: 'South-west', 동: 'East', 서: 'West', 북: 'North', 북동: 'North-east', 북서: 'North-west' };
+const LAYOUT = { 계단식: 'stair', 복도식: 'corridor', 복합식: 'mixed' };
+const HEAT = { 개별난방: 'Individual', 지역난방: 'District', 중앙난방: 'Central', '개별 냉난방': 'Individual heating and cooling' };
+const ROOMS = { 오픈형원룸: 'Open studio', 분리형원룸: 'Split studio', 복층형원룸: 'Duplex studio', 투룸: 'Two rooms' };
+const TAGS = { 주차: 'Parking', '보안/안전': 'Security', '1층': 'Ground floor', 풀옵션: 'Fully furnished', 큰길가: 'On a main road', 복층: 'Duplex', 'LH 전세임대': 'LH jeonse lease', 신축: 'New build', 분리형: 'Split layout', 반려동물: 'Pets OK', 추천: 'Recommended' };
+const COVERS = { '일반(공용) 관리비': 'Common fee', 전기: 'electricity', 수도: 'water', 가스: 'gas', 난방: 'heating', 인터넷: 'internet', TV: 'TV', '기타 관리비': 'other' };
+const OPTS = { 옷장: 'Wardrobe', 붙박이장: 'Built-in closet', 신발장: 'Shoe cabinet', 인덕션: 'Induction hob', 전자레인지: 'Microwave', 싱크대: 'Sink', 비데: 'Bidet', 욕조: 'Bathtub', 샤워부스: 'Shower booth', 천장형: 'Ceiling air conditioning', 벽걸이형: 'Wall air conditioning', 스탠드형: 'Standing air conditioning', 에어컨: 'Air conditioning', 베란다: 'Veranda', 테라스: 'Terrace', 마당: 'Yard', 무인택배함: 'Parcel lockers', 화재경보기: 'Fire alarm', 가스레인지: 'Gas stove', 가스오븐: 'Gas oven', 냉장고: 'Fridge', 세탁기: 'Washing machine', 건조기: 'Dryer', 식기세척기: 'Dishwasher', 식탁: 'Dining table', 책상: 'Desk', 책장: 'Bookcase', 침대: 'Bed', 쇼파: 'Sofa', 소파: 'Sofa', TV: 'TV' };
+const LINES = { 경의중앙선: 'Gyeongui-Jungang', 공항철도: 'AREX', 신분당선: 'Shinbundang', 수인분당선: 'Suin-Bundang', 분당선: 'Bundang', 경춘선: 'Gyeongchun', 경강선: 'Gyeonggang', 서해선: 'Seohae', 우이신설선: 'Ui-Sinseol', 신림선: 'Sillim', 김포골드라인: 'Gimpo Goldline', 의정부경전철: 'Uijeongbu LRT', 에버라인: 'Everline', 인천1호선: 'Incheon 1', 인천2호선: 'Incheon 2' };
+const lineText = s => s.split(',').map(l => LINES[l] ?? l.replace(/^(\d+)호선$/, 'Line $1')).join(', ');
+const floorText = f => f === '저층' ? 'Low floor' : f === '중층' ? 'Mid floor' : f === '고층' ? 'High floor' : /^\d+층$/.test(f) ? 'Floor ' + parseInt(f) : f === '-' ? '' : f;
+const koDate = s => { const m = String(s).match(/^(\d{4})\.?\s*(\d{1,2})(?:\.(\d{1,2}))?/) ; if (!m) return s; const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m[2] - 1]; return (m[3] ? +m[3] + ' ' : '') + mon + ' ' + m[1]; };
+const moneyKo = s => { const [a, b] = String(s).split('/'); const f = x => x.replace(/억(\d+)/, (_, n) => '억 ' + (+n).toLocaleString('en-US')).replace(/^(\d+)$/, (_, n) => (+n).toLocaleString('en-US')) + (/억$/.test(x) ? '원' : '만원'); return b ? f(a) + ' / ' + f(b) : f(a); };
+const loanText = v => { const m = String(v).match(/^(?:(\d+)억)?(\d*)$/); return m ? won((+m[1] || 0) * 10000 + (+m[2] || 0)) : /30%\s*미만/.test(v) ? 'Under 30% of market value' : /30%\s*이상/.test(v) ? '30% or more of market value' : v; };
+const helpBtn = (cls, text, help) => `<button class="${cls}" type="button" data-help="${esc(help)}" title="${esc(help)}">${esc(text)}</button>`;
+
+// Filters: each slider lives in a section, shown in the sidebar on desktop and in a bottom sheet on phones.
+const SLIDERS = {
+  deposit: { box: 'budget', label: 'Max deposit', help: HELP.deposit, fmt: anyOr(won), def: ANY, steps: [0, 100, 300, 500, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 70000, 100000, ANY] },
+  rent: { box: 'budget', label: 'Max monthly rent', help: HELP.rent, fmt: anyOr(won), def: ANY, steps: [0, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 400, 500, 700, 1000, ANY] },
+  fee: { box: 'budget', label: 'Max maintenance', help: HELP.fee, fmt: anyOr(won), def: ANY, steps: [0, 5, 10, 15, 20, 25, 30, 40, 50, 70, 100, ANY] },
+  total: { box: 'budget', label: 'Max real monthly cost', help: HELP.total, fmt: anyOr(won), def: ANY, steps: [30, 50, 70, 80, 90, 100, 120, 140, 160, 180, 200, 250, 300, 400, 500, 700, 1000, ANY] },
+  minA: { box: 'size', label: 'Min usable size', help: HELP.pyeong, fmt: v => v + ' m² · ' + Math.round(v / 3.3058) + '평', def: 0, steps: seq(0, 150, 5) },
+  maxA: { box: 'size', label: 'Max usable size', help: HELP.pyeong, fmt: anyOr(v => v + ' m² · ' + Math.round(v / 3.3058) + '평'), def: ANY, steps: [...seq(10, 150, 5), 175, 200, ANY] },
+  beds: { box: 'rooms', label: 'Min rooms', fmt: v => v ? v + '+' : 'Any', def: 0, steps: [0, 1, 2, 3, 4] },
+  maxAge: { box: 'age', label: 'Max building age', fmt: anyOr(v => v + ' years'), def: 30, steps: [...seq(0, 40, 5), ANY] },
+  place0: { box: 'placeList', label: 'Max distance', fmt: anyOr(v => v + ' km'), def: ANY, steps: [1, 2, 3, 5, 7, 10, 15, 20, 30, ANY] },
+  place1: { box: 'placeList', label: 'Max distance', fmt: anyOr(v => v + ' km'), def: ANY, steps: [1, 2, 3, 5, 7, 10, 15, 20, 30, ANY] },
+  sub: { box: 'places', label: 'Max distance to a subway station', fmt: anyOr(v => v >= 1000 ? v / 1000 + ' km' : v + ' m'), def: ANY, steps: [200, 300, 400, 500, 700, 1000, 1500, 2000, 3000, ANY] },
+  rate: { box: 'knobs', label: 'Cost of locked-up money', fmt: v => v.toFixed(1) + '% a year', def: DATA.rate, steps: [...new Set([...seq(0, 100, 5).map(x => x / 10), DATA.rate])].sort((a, b) => a - b) },
+  penalty: { box: 'knobs', label: 'Old-building penalty', fmt: v => v ? '+' + v + '% per 10 yrs' : 'Off', def: DATA.penalty, steps: seq(0, 100, 5) },
+};
+const secEl = k => document.querySelector(`[data-sec="${k}"]`);
 for (const [k, s] of Object.entries(SLIDERS)) {
   const el = document.createElement('div');
   el.className = 'ctl';
-  el.innerHTML = `<div class="top"><label for="s_${k}">${s.label}</label><output id="o_${k}"></output></div><input type="range" id="s_${k}" min="0" max="${s.steps.length - 1}" step="1">`;
-  $(s.box).append(el);
+  el.id = 'ctl_' + k;
+  el.innerHTML = `<div class="row"><label for="s_${k}"${s.help ? ` title="${esc(s.help)}" data-help="${esc(s.help)}"` : ''}>${s.label}</label><output id="o_${k}" for="s_${k}"></output></div><input type="range" id="s_${k}" min="0" max="${s.steps.length - 1}" step="1">`;
+  ($(s.box) ?? secEl(s.box)).append(el);
 }
 const val = k => SLIDERS[k].steps[+$('s_' + k).value];
 const setVal = (k, v) => { const s = SLIDERS[k]; let i = s.steps.indexOf(v); if (i < 0) i = s.steps.indexOf(s.def); $('s_' + k).value = i; };
 
-$('types').innerHTML = [['apt', 'Apartments'], ['off', 'Officetels'], ['jeonse', 'Jeonse 전세'], ['monthly', 'Monthly 월세']]
+$('types').innerHTML = [['apt', 'Apartments'], ['off', 'Officetels'], ['jeonse', 'Jeonse 전세'], ['monthly', 'Wolse 월세']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
 $('sources').innerHTML = [['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
 
-// Row: [key (d: Dabang, z: Zigbang), category 0 apt/1 officetel, deal 0 jeonse/1 monthly, deposit, rent, fee, usable m², complex, dong, region index, floor, title, short, lh, price text, partial, building age|null, photo|null, fee estimated, size estimated, rooms|null, metres to nearest station, station index, on both sites]
+// Row: [key (d: Dabang, z: Zigbang), category 0 apt/1 officetel, deal 0 jeonse/1 monthly, deposit, rent, fee, usable m², complex, dong, region index, floor, title, short, lh, price text, partial, building age|null, photo|null, fee estimated, size estimated, rooms|null, metres to nearest station, station index, on both sites, lat, lng]
 document.documentElement.classList.toggle('phone', /Mobi|Android|iPhone/.test(navigator.userAgent));
-const ROWS = DATA.rows.map(r => ({ key: r[0], cat: r[1], deal: r[2], dep: r[3], rent: r[4], fee: r[5], m2: r[6], complex: r[7], dong: r[8], reg: r[9], floor: r[10], title: r[11], short: r[12], lh: r[13], price: r[14], partial: r[15], age: r[16], photo: r[17], feeEst: r[18], sizeEst: r[19], beds: r[20], subM: r[21], sub: r[22], also: r[23],
-  hay: (r[7] + ' ' + r[8] + ' ' + r[11] + ' ' + DATA.regions[r[9]].label + ' ' + DATA.stations[r[22]]).toLowerCase() }));
+const ROWS = DATA.rows.map(r => ({ key: r[0], cat: r[1], deal: r[2], dep: r[3], rent: r[4], fee: r[5], m2: r[6], complex: r[7], dong: r[8], reg: r[9], floor: r[10], title: r[11], short: r[12], lh: r[13], price: r[14], partial: r[15], age: r[16], photo: r[17], feeEst: r[18], sizeEst: r[19], beds: r[20], subM: r[21], sub: r[22], also: r[23], lat: r[24], lng: r[25] }));
 const BY_KEY = new Map(ROWS.map(r => [r.key, r]));
+const hay = r => r.hay ??= [r.complex, r.dong, dongText(r.dong), r.title, DATA.regions[r.reg].label, DATA.stations[r.sub], stationName(DATA.stations[r.sub])].join(' ').toLowerCase();
+const areaText = r => r.areaText ?? `${dongText(r.dong)}, ${districtText(DATA.regions[r.reg].label)}`;
+const subText = r => r.subText ?? stationName(DATA.stations[r.sub]);
 
 const groups = {};
 DATA.regions.forEach((g, i) => { (groups[g.province] ??= []).push([g, i]); });
-$('areas').innerHTML = Object.entries(groups).map(([p, list]) => `<h3>${p}</h3><div class="chips">${list.sort((a, b) => a[0].label.localeCompare(b[0].label)).map(([g, i]) => `<label><input type="checkbox" data-reg="${i}"> ${g.label}</label>`).join('')}</div>`).join('');
+$('areas').innerHTML = Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([p, list]) => `<div class="sec" style="gap:6px"><button class="prov" type="button" data-prov="${esc(p)}">${esc(p)} <span>All</span></button><div class="pick">${list.sort((a, b) => a[0].label.localeCompare(b[0].label)).map(([g, i]) => `<label><input type="checkbox" data-reg="${i}"> ${esc(g.label)}</label>`).join('')}</div></div>`).join('');
 const areaBoxes = [...document.querySelectorAll('[data-reg]')];
+const regionsOf = p => areaBoxes.filter(b => DATA.regions[+b.dataset.reg].province === p);
 
-const CHECKS = ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang', 'favOnly'];
+const CHECKS = ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang'];
 const CHECK_DEFAULTS = { t_apt: true, t_off: true, t_jeonse: true, t_monthly: true, t_dabang: true, t_zigbang: true, unknownFee: true };
 
-function reset() {
-  for (const [k, s] of Object.entries(SLIDERS)) setVal(k, s.def);
-  for (const c of CHECKS) $(c).checked = !!CHECK_DEFAULTS[c];
-  areaBoxes.forEach(b => b.checked = false);
-  $('q').value = ''; $('sort').value = 'v';
+// Up to two stations of your own; distance to them shows on cards and can filter and sort.
+let places = [];
+const placeAt = i => { const s = DATA.stations.indexOf(places[i]); return s < 0 ? null : { name: places[i], at: DATA.stationAt[s] }; };
+const metres = (lat, lng, at) => Math.hypot((at[0] - lat) * 111320, (at[1] - lng) * 111320 * Math.cos(lat * Math.PI / 180));
+
+function resetSection(el) {
+  for (const i of el.querySelectorAll('input[type=range]')) { const k = i.id.slice(2); setVal(k, SLIDERS[k].def); }
+  for (const i of el.querySelectorAll('input[type=checkbox]')) i.checked = !!CHECK_DEFAULTS[i.id];
+  for (const i of el.querySelectorAll('input[type=search]')) i.value = '';
+  if (el.dataset.sec === 'places') { places = []; $('placeHits').innerHTML = ''; paintPlaces(); }
 }
+const ALL_SECS = [...document.querySelectorAll('[data-sec]')];
+function resetAll() { ALL_SECS.forEach(resetSection); $('sort').value = 'v'; }
 
 const STORE = 'finder-filters-v2';
 function saveState() {
   try {
-    localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value }));
+    localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value, p: places }));
   } catch {}
 }
 function loadState() {
   try {
     const st = JSON.parse(localStorage.getItem(STORE));
     if (!st) return;
+    places = (st.p ?? []).filter(n => DATA.stations.includes(n)).slice(0, 2);
+    paintPlaces();
     for (const [k, v] of Object.entries(st.s)) if (SLIDERS[k]) setVal(k, v === 'any' ? ANY : v);
     for (const c of CHECKS) if (c in st.c) $(c).checked = st.c[c];
     areaBoxes.forEach(b => b.checked = st.a.includes(DATA.regions[+b.dataset.reg].key));
-    $('q').value = st.q; $('sort').value = st.o;
+    $('q').value = st.q;
+    $('sort').value = st.o;
+    if (!$('sort').value) $('sort').value = 'v';
   } catch {}
 }
 
 const median = a => { if (!a.length) return null; const s = Float64Array.from(a).sort(); return s[s.length >> 1]; };
 const isLow = f => f === '저층' || (/^\d+층$/.test(f) && parseInt(f) <= 2);
-let shown = 100, results = [], medV = null;
-const favs = new Set((() => { try { return JSON.parse(localStorage.getItem('finder-favourites-v1')) ?? []; } catch { return []; } })());
+let shown = 0, results = [], medV = null, view = 'list';
+const PAGE = 60;
 
 function score(r, rate = val('rate'), penalty = val('penalty')) {
   const e = r.rent + r.fee + r.dep * rate / 100 / 12;
@@ -354,10 +502,9 @@ function compute() {
   const c = Object.fromEntries(CHECKS.map(k => [k, $(k).checked]));
   const regs = new Set(areaBoxes.filter(b => b.checked).map(b => +b.dataset.reg));
   const q = $('q').value.trim().toLowerCase();
+  const ps = [0, 1].map(placeAt), max = [val('place0') * 1000, val('place1') * 1000];
   const out = [];
-  for (const r of ROWS) {
-    // Favourites stay visible whatever the filters say.
-    if (c.favOnly) { if (favs.has(r.key)) out.push(score(r, rate, penalty)); continue; }
+  rows: for (const r of ROWS) {
     if (!(r.cat ? c.t_off : c.t_apt) || !(r.deal ? c.t_monthly : c.t_jeonse)) continue;
     if (!(r.also ? c.t_dabang || c.t_zigbang : r.key[0] === 'd' ? c.t_dabang : c.t_zigbang)) continue;
     if (r.partial && !c.partial) continue;
@@ -373,51 +520,57 @@ function compute() {
     if (r.beds !== null && r.beds < f.beds) continue; // rooms unknown (many Zigbang apartments): kept
     const x = score(r, rate, penalty);
     if (x.e > f.total) continue;
-    if (q && !r.hay.includes(q)) continue;
+    if (q && !hay(r).includes(q)) continue;
+    x.pd = [null, null];
+    for (let i = 0; i < 2; i++) if (ps[i] && r.lat != null) { x.pd[i] = metres(r.lat, r.lng, ps[i].at); if (x.pd[i] > max[i]) continue rows; }
     out.push(x);
   }
   const sort = $('sort').value;
-  const by = { v: x => x.v, e: x => x.e, a: x => -x.a, d: x => x.r.dep, n: x => x.r.age ?? 99 }[sort];
+  const by = { v: x => x.v, e: x => x.e, a: x => -x.a, d: x => x.r.dep, n: x => x.r.age ?? 99, p0: x => x.pd[0] ?? Infinity, p1: x => x.pd[1] ?? Infinity }[sort];
   out.sort((x, y) => by(x) - by(y) || x.v - y.v);
   return out;
 }
 
-const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
-const floorText = f => f === '저층' ? 'Low floor' : f === '중층' ? 'Mid floor' : f === '고층' ? 'High floor' : /^\d+층$/.test(f) ? 'Floor ' + parseInt(f) : f === '-' ? '' : f;
-const ageText = a => a === null ? '' : a === 0 ? 'New build' : a === 1 ? '1 year old' : a + ' years old';
-function medianPill(v) {
-  if (medV === null) return '';
-  const pct = Math.round((v / medV - 1) * 100);
-  return pct <= -10 ? `<span class="pill good">${-pct}% below median</span>` : pct >= 10 ? `<span class="pill warn">${pct}% above median</span>` : '<span class="pill">Near median</span>';
-}
-const sizeText = r => `${r.sizeEst ? '~' : ''}${r.m2.toFixed(0)} m² usable · ${Math.round(r.m2 / 3.3058)}평`;
-const sourceText = r => r.also ? 'Dabang + Zigbang' : r.key[0] === 'd' ? 'Dabang' : 'Zigbang';
-const priceHead = r => { const dep = r.dep ? won(r.dep) + ' deposit' : 'No deposit'; return r.deal ? dep + ' · ' + won(r.rent) + '/mo' : dep; };
-const costParts = ({ r }) => [r.rent ? won(r.rent) + ' rent' : '', r.fee ? (r.feeEst ? '~' : '') + won(r.fee) + ' fee' : '', r.dep ? won(r.dep * val('rate') / 100 / 12) + ' deposit cost' : ''].filter(Boolean).join(' + ');
-const statsHtml = x => `<div class="stat"><label>Value</label><div class="n">₩${(x.v * 10).toFixed(1)}k<small> /m²</small></div>${medianPill(x.v)}</div>
-      <div class="stat"><label>Real monthly cost</label><div class="n sec">${won(x.e)}</div><p>${costParts(x) || 'No cost data'}</p></div>`;
-const favBtn = (key, text = '') => { const on = favs.has(key); return `<button class="fav" type="button" data-fav="${esc(key)}" aria-pressed="${on}" aria-label="Favourite">${on ? '★' : '☆'}${text}</button>`; };
+const STAR = s => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>`;
+const favBtn = (key, cls, size) => `<button class="${cls}" type="button" data-fav="${esc(key)}" aria-pressed="${favs.has(key)}" aria-label="Save this listing">${STAR(size)}</button>`;
 const photoUrl = r => r.key[0] === 'd' ? 'https://d1774jszgerdmk.cloudfront.net/512/' + r.photo : 'https://ic.zigbang.com/' + r.photo + '?w=400';
+const photoTag = r => r.photo ? `<img src="${esc(photoUrl(r))}" alt="${esc(r.complex)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo on this listing')">` : 'No photo on this listing';
+const badge = v => {
+  if (medV === null) return '<span class="badge none">Not compared</span>';
+  const below = Math.round((1 - v / medV) * 100);
+  return below > 0 ? `<span class="badge">${below}% below median</span>` : below < 0 ? `<span class="badge above">${-below}% above median</span>` : '<span class="badge">At the median</span>';
+};
+const termBtn = r => helpBtn('term', r.deal ? 'Wolse' : 'Jeonse', r.deal ? HELP.wolse : HELP.jeonse);
+const priceText = r => r.deal ? won(r.rent) + '/mo' : won(r.dep);
+const depSmall = r => r.deal ? `<small>${r.dep ? '+ ' + won(r.dep) + ' deposit' : 'no deposit'}</small>` : '';
+const ageShort = a => a === null ? '' : a === 0 ? 'new build' : a === 1 ? '1 yr old' : a + ' yrs old';
+const typeText = r => r.cat ? 'Officetel' : 'Apartment';
+const sizeText = r => `${r.sizeEst ? '~' : ''}${Math.round(r.m2)} m²`;
+const roomsText = r => r.beds ? r.beds + (r.beds > 1 ? ' rooms' : ' room') : '';
+const distLine = (r, pd = []) => {
+  const parts = [`${subText(r)} ${dist(r.subM)}`];
+  [0, 1].forEach(i => { const p = placeAt(i); if (!p || r.lat == null) return; const name = stationName(p.name); if (name !== subText(r)) parts.push(`${name} ${dist(pd[i] ?? metres(r.lat, r.lng, p.at))}`); });
+  return parts.join(' · ');
+};
 
-function rowHtml(x, i) {
+function cardHtml(x, gone) {
   const r = x.r;
-  const facts = [r.cat ? 'Officetel' : 'Apartment', sizeText(r), r.beds && r.beds + (r.beds > 1 ? ' rooms' : ' room'), floorText(r.floor), `${DATA.stations[r.sub]} ${r.subM >= 1000 ? (r.subM / 1000).toFixed(1) + ' km' : r.subM + ' m'}`].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')
-    + (r.age === null ? '' : `<span${r.age >= 25 ? ' class="old"' : ''}>${ageText(r.age)}</span>`);
-  const flags = [r.age === null && 'Age unknown', r.feeEst && 'Fee estimated', r.sizeEst && 'Size estimated', r.partial && 'Single room?', r.short && 'Short-term', r.lh && 'LH'].filter(Boolean).map(t => `<span>${t}</span>`).join('');
-  return `<article class="card">
-    <div class="photo"><span class="rank">${i + 1}</span>${favBtn(r.key)}${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
-    <div class="body">
-      <div class="price"><strong>${priceHead(r)}</strong><small>${r.deal ? '월세' : '전세'} ${esc(r.price)} · ${sourceText(r)}</small></div>
-      <div class="place"><a class="open" href="#${esc(r.key)}"><b>${esc(r.complex)}</b></a> · ${esc(r.dong)}, ${esc(DATA.regions[r.reg].label)}</div>
-      <div class="facts">${facts}</div>
-      <div class="ttl">${esc(r.title)}</div>
-      ${flags ? `<div class="flags">${flags}</div>` : ''}
+  const facts = [typeText(r), sizeText(r), roomsText(r), ageShort(r.age)].filter(Boolean).join(' · ');
+  const flags = [r.feeEst && 'Maintenance estimated', r.partial && 'Might be one room of a unit', r.short && 'Short-term', r.lh && 'LH public housing'].filter(Boolean).join(' · ');
+  return `<article class="card${gone ? ' gone' : ''}">
+    <div class="photo">${photoTag(r)}${gone ? '<span class="badge none">No longer listed</span>' : badge(x.v)}</div>
+    ${gone ? '' : `<a class="open" href="#${esc(r.key)}" aria-label="Open ${esc(r.complex)}"></a>`}
+    ${favBtn(r.key, 'star', 22)}
+    <div class="cbody">
+      <div class="line1">${gone ? (r.deal ? 'Wolse' : 'Jeonse') : termBtn(r)} <span>${priceText(r)}</span> ${depSmall(r)}</div>
+      <div class="real">Real cost ${won(x.e)} a month</div>
+      <div class="ttl">${esc(r.complex)}</div>
+      <div class="meta">${esc(areaText(r))}<br>${esc(facts)}<br>${esc(distLine(r, x.pd))}${flags ? '<br>' + esc(flags) : ''}</div>
     </div>
-    <div class="verdict">${statsHtml(x)}</div>
   </article>`;
 }
 
-// Detail view: a real URL (#d:id), so Back closes it and a listing can be linked.
+// Listing page: a real URL (#d:id), so Back closes it and a listing can be linked.
 const dlg = $('detail');
 const shardOf = key => { let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) & 255; return h.toString(16).padStart(2, '0'); };
 const shards = new Map();
@@ -425,40 +578,117 @@ const loadShard = s => { if (!shards.has(s)) shards.set(s, fetch(`data/d/${s}.js
 const isListing = () => /^#[dz]:/.test(location.hash);
 let current = null, navigated = false;
 
+function factRows(r, d) {
+  const out = [];
+  const add = (k, v, help) => { if (v !== '' && v != null) out.push([k, v, help]); };
+  const bath = d.facts.find(f => f[0] === 'Bathrooms')?.[1];
+  const rooms = d.facts.find(f => f[0] === 'Rooms')?.[1];
+  const roomText = rooms == null ? '' : ROOMS[rooms] ?? (/^\d+$/.test(rooms) ? rooms + (rooms > 1 ? ' rooms' : ' room') : rooms);
+  add('Usable size', `${r.sizeEst ? '~' : ''}${r.m2} m² · ${Math.round(r.m2 / 3.3058)}평`, HELP.pyeong);
+  for (const [k, v] of d.facts) {
+    if (k === 'Exclusive size' || k === 'Rooms' || k === 'Bathrooms') { if (k === 'Rooms') add('Rooms and bathrooms', [roomText, bath && bath + (bath > 1 ? ' bathrooms' : ' bathroom')].filter(Boolean).join(', ')); continue; }
+    if (k === 'Supply size') add(k, v, HELP.supply);
+    else if (k === 'Contract size') add(k, v, HELP.contract);
+    else if (k === 'Floor') { const m = String(v).match(/^(.+?) of (\d+)층$/); add(k, m ? `${floorText(m[1])} of ${m[2]}` : floorText(v)); }
+    else if (k === 'Facing') add(k, FACING[v] ?? v);
+    else if (k === 'Layout') add(k, { stair: 'Stairwell', corridor: 'Corridor', mixed: 'Mixed' }[LAYOUT[v]] ?? v, HELP[LAYOUT[v]]);
+    else if (k === 'Heating') add(k, HEAT[v] ?? v);
+    else if (k === 'Parking') add(k, String(v).replace('불가능', 'Not available').replace('가능', 'Available'));
+    else if (k === 'Elevator') add(k, v === '있음' ? 'Yes' : v === '없음' ? 'No' : v);
+    else if (k === 'Loan') add('Existing loan', loanText(v), /미만/.test(v) ? null : HELP.loan);
+    else if (k === 'Fee covers') add(k, String(v).split(', ').map(x => COVERS[x] ?? x).join(', ').replace(/^./, m => m.toUpperCase()));
+    else if (k === 'Move in') add(k, /즉시/.test(v) ? (/협의/.test(v) ? 'Immediately, negotiable' : 'Immediately') : /협의/.test(v) ? 'Negotiable' : koDate(v));
+    else if (k === 'Maintenance') add(k, r.feeEst ? `about ${won(r.fee)} a month (estimated)` : r.fee ? won(r.fee) + ' a month' : 'None', HELP.fee);
+    else if (k === 'Approved') add('Building approved', koDate(v).replace(/^\d+ /, ''));
+    else if (k === 'Posted') add(k, koDate(v));
+    else add(k, String(v));
+  }
+  if (!d.facts.some(f => f[0] === 'Rooms') && bath) add('Bathrooms', bath);
+  if (!d.facts.some(f => f[0] === 'Maintenance')) add('Maintenance', r.feeEst ? `about ${won(r.fee)} a month (estimated)` : won(r.fee) + ' a month', HELP.fee);
+  return out;
+}
+
 function detailHtml(r, d) {
-  const x = score(r);
-  const head = `<div class="dhead"><h2 id="dTitle">${priceHead(r)}</h2>
-      <div class="place"><b>${esc(r.complex)}</b> · ${esc(r.dong)}, ${esc(DATA.regions[r.reg].label)}</div>
-      ${d?.addr ? `<p>${esc(d.addr)}</p>` : ''}<p>${esc(r.title)}</p></div>
-    <div class="dstats">${statsHtml(x)}</div>`;
-  if (!d) return head + '<p class="foot" id="dLoading">Loading details…</p>';
+  const x = score(r), rate = val('rate'), penalty = val('penalty');
+  const pen = penalty * (r.age ?? 0) / 10;
+  const raw = x.e / r.m2;
+  const how = [
+    r.rent ? [`Monthly rent`, won(r.rent)] : null,
+    r.dep ? [`Deposit, ${won(r.dep)} at ${rate.toFixed(1)}% a year`, won(r.dep * rate / 100 / 12)] : null,
+    [r.feeEst ? 'Maintenance (estimated)' : 'Maintenance', r.fee ? won(r.fee) : '₩0'],
+    ['<b>Real monthly cost</b>', `<b>${won(x.e)}</b>`],
+    [`Per m² of usable space (${sizeText(r)})`, perM2(raw)],
+    r.age === null ? ['Building age unknown, no penalty', perM2(x.v)] : pen ? [`With ${r.age}-year-old building penalty, +${+pen.toFixed(1)}%`, perM2(x.v)] : null,
+    medV !== null ? ['<b>Median listing</b>', `<b>${perM2(medV)}</b>`] : null,
+  ].filter(Boolean).map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
+  const head = `<section class="dsec dhead">${badge(x.v)}
+      <div class="bigprice">${termBtn(r).replace('class="term"', 'class="term" style="z-index:0"')} <span id="dTitle" title="${esc(moneyKo(r.price))}">${priceText(r)}</span> ${depSmall(r)}</div>
+      <div class="bigreal">Real cost ${won(x.e)} a month</div>
+      <div class="muted">${esc(areaText(r))} · ${typeText(r)}</div>
+      <details class="how"><summary>How this is worked out</summary><div class="pairs">${how}</div></details>
+    </section>`;
+  const bath = d?.facts.find(f => f[0] === 'Bathrooms')?.[1];
+  const floorFact = d?.facts.find(f => f[0] === 'Floor')?.[1];
+  const of = String(floorFact ?? '').match(/ of (\d+)층$/)?.[1];
+  const approved = d?.facts.find(f => f[0] === 'Approved')?.[1];
+  const flr = floorText(r.floor).replace(' floor', '').replace('Floor ', '');
+  const tiles = `<section class="tiles">
+      <div><b>${sizeText(r)}</b><span>Usable, ${Math.round(r.m2 / 3.3058)}평</span></div>
+      <div><b>${roomsText(r) || '–'}</b><span>${bath ? bath + (bath > 1 ? ' bathrooms' : ' bathroom') : 'Rooms'}</span></div>
+      <div><b>${esc(flr) || '–'}</b><span>Floor${of ? ', of ' + of : ''}</span></div>
+      <div><b>${r.age === null ? '–' : r.age === 0 ? 'New' : r.age + (r.age > 1 ? ' yrs' : ' yr')}</b><span>${approved ? 'Built ' + String(approved).slice(0, 4) : 'Age'}</span></div>
+    </section>`;
+  const gallery = !d ? (r.photo ? `<div class="gallery-box"><div class="gallery"><img src="${esc(photoUrl(r))}" alt="${esc(r.complex)}" referrerpolicy="no-referrer"></div></div>` : '<div class="nophoto">Loading…</div>')
+    : d.imgs.length ? `<div class="gallery-box"><div class="gallery" id="gal" tabindex="0" aria-label="${d.imgs.length} photos">${d.imgs.map((u, i) => `<img src="${esc(u)}" alt="Photo ${i + 1} of ${d.imgs.length}" ${i ? 'loading="lazy"' : ''} referrerpolicy="no-referrer" onerror="this.remove()">`).join('')}</div>${d.imgs.length > 1 ? `<button class="arrow prev" type="button" data-slide="-1" aria-label="Previous photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><button class="arrow next" type="button" data-slide="1" aria-label="Next photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button><span class="counter" id="galN">1 / ${d.imgs.length}</span>` : ''}</div>`
+    : '<div class="nophoto">No photos on this listing</div>';
+  if (!d) return gallery + `<div class="dbody"><div class="dcol">${head}${tiles}<p class="muted" id="dLoading">Loading details…</p></div></div>`;
   const place = encodeURIComponent(r.complex.replace(/,/g, ' '));
-  const gallery = d.imgs.length ? `<div class="gallery-box"><div class="gallery" tabindex="0" aria-label="${d.imgs.length} photos">${d.imgs.map(u => `<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`).join('')}</div>${d.imgs.length > 1 ? '<button class="prev" type="button" data-slide="-1" aria-label="Previous photo">←</button><button class="next" type="button" data-slide="1" aria-label="Next photo">→</button>' : ''}</div>` : '<div class="nophoto">No photos</div>';
-  const near = [['Nearest subway: ' + d.station[0], d.station[1] + ' straight line'], ...d.near];
-  return gallery + head + `
-    <section class="dsec"><h3>Location</h3>
-      <div class="map"><iframe src="https://map.kakao.com/link/map/${place},${d.lat},${d.lng}" title="Map of ${esc(r.complex)}" referrerpolicy="no-referrer"></iframe></div>
-      <div class="dlinks"><a href="https://map.kakao.com/link/map/${place},${d.lat},${d.lng}" target="_blank" rel="noopener">Open in Kakao Map</a><a href="https://map.naver.com/p/search/${encodeURIComponent(d.addr)}" target="_blank" rel="noopener">Open in Naver Map</a></div>
-    </section>
-    <section class="dsec"><h3>Details</h3><dl class="dfacts">${d.facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>
-    ${d.memo ? `<section class="dsec"><h3>Description (from the listing)</h3><p class="memo">${esc(d.memo)}</p></section>` : ''}
-    ${d.opts.length ? `<section class="dsec"><h3>Included</h3><div class="tags">${d.opts.map(t => `<span>${esc(t)}</span>`).join('')}</div></section>` : ''}
-    ${d.tags.length ? `<section class="dsec"><h3>Tags</h3><div class="tags">${d.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div></section>` : ''}
-    <section class="dsec"><h3>Nearby</h3><dl class="dfacts">${near.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>
-    <section class="dsec"><h3>Contact the agent</h3><div class="dlinks">${[d.link, d.also].filter(Boolean).map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">See this listing on ${esc(n)}</a>`).join('')}</div></section>`;
+  const kakao = `https://map.kakao.com/link/map/${place},${d.lat},${d.lng}`;
+  const st = d.station[0].match(/^(.+?) \((.*)\)$/);
+  const placeRows = [0, 1].map(i => { const p = placeAt(i); return p ? [`${stationName(p.name)}, your place`, dist(metres(d.lat, d.lng, p.at))] : null; }).filter(Boolean);
+  const schoolKind = n => /초등학교/.test(n) ? ', elementary school' : /중학교/.test(n) ? ', middle school' : /고등학교/.test(n) ? ', high school' : /대학교/.test(n) ? ', university' : '';
+  const near = [...placeRows, [st ? `${stationName(st[1])}, ${lineText(st[2])}` : d.station[0], d.station[1]], ...d.near.filter(([n]) => !/유치원/.test(n)).map(([n, m]) => [n + schoolKind(n), m])];
+  const tagged = [...d.opts.map(o => [o, OPTS[o]]), ...(d.tags ?? []).map(o => [o, TAGS[o]])].map(([o, en]) => helpBtn('', o, en ? o + ' · ' + en : o)).join('');
+  const links = [d.link, d.also].filter(Boolean);
+  return gallery + `<div class="dbody">
+    <div class="dcol">
+      ${head}${tiles}
+      <section class="dsec"><h2>Location</h2>
+        <div class="map"><iframe src="${kakao}" title="Map of ${esc(r.complex)}" referrerpolicy="no-referrer" loading="lazy"></iframe></div>
+        <div>${esc(d.addr)}</div>
+        <div class="links"><a href="${kakao}" target="_blank" rel="noopener">Open in Kakao Map</a><a href="https://map.naver.com/p/search/${encodeURIComponent(d.addr)}" target="_blank" rel="noopener">Open in Naver Map</a></div>
+        <h3>Nearby</h3>
+        <div class="pairs">${near.map(([k, v]) => `<span>${esc(k)}</span><span>${esc(v)}</span>`).join('')}</div>
+      </section>
+    </div>
+    <div class="dcol">
+      ${d.memo ? `<section class="dsec"><div class="memohead"><h2>Description</h2><a href="https://translate.google.com/?sl=ko&tl=en&op=translate&text=${encodeURIComponent(d.memo.slice(0, 3000))}" target="_blank" rel="noopener">Translate</a></div><p class="memo" lang="ko">${esc(d.memo)}</p></section>` : ''}
+      <section class="dsec"><h2>Full details</h2>
+        <div>${factRows(r, d).map(([k, v, help]) => `<div class="fact"><div><span>${esc(k)}</span>${help ? helpBtn('v', v, help) : `<span class="v">${esc(v)}</span>`}</div></div>`).join('')}</div>
+        ${tagged ? `<h3>Included</h3><div class="tags">${tagged}</div>` : ''}
+      </section>
+      ${links.map(([n, u], i) => `<a class="primary" href="${esc(u)}" target="_blank" rel="noopener"${i ? ' style="background:none;color:var(--ink);border:1px solid var(--line)"' : ''}>See this listing on ${esc(n)}</a>`).join('')}
+    </div>
+  </div>`;
 }
 
 async function openDetail(key) {
   const r = BY_KEY.get(key);
   if (!r) return location.hash = '';
   current = key;
-  $('dBar').innerHTML = favBtn(key, ' Favourite') + '<button class="close" type="button" id="dClose">Close</button>';
+  $('dBar').innerHTML = `<button type="button" id="dClose" aria-label="Back to the list"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div>${esc(r.complex)}</div>` + favBtn(key, 'fav', 24);
   $('dBody').innerHTML = detailHtml(r);
   if (!dlg.open) dlg.showModal();
   dlg.scrollTop = 0;
   try {
     const d = (await loadShard(shardOf(key)))[key];
-    if (current === key && dlg.open) { $('dBody').innerHTML = detailHtml(r, d); dlg.scrollTop = 0; }
+    if (current === key && dlg.open) {
+      const open = dlg.querySelector('.how')?.open;
+      $('dBody').innerHTML = detailHtml(r, d);
+      if (open) dlg.querySelector('.how').open = true;
+      $('gal')?.addEventListener('scroll', e => { const g = e.target; $('galN').textContent = `${Math.round(g.scrollLeft / g.clientWidth) + 1} / ${g.children.length}`; }, { passive: true });
+    }
+    if (favs.has(key) && d?.addr) { favs.get(key).addr = d.addr; saveFavs(); }
   } catch {
     if (current === key && dlg.open) $('dLoading').textContent = "Couldn't load the details. Check your connection and open the listing again.";
   }
@@ -475,78 +705,303 @@ dlg.addEventListener('close', () => {
   if (isListing()) navigated ? history.back() : history.replaceState(null, '', location.pathname + location.search);
 });
 dlg.addEventListener('click', e => {
-  if (e.target === dlg || e.target.id === 'dClose') dlg.close();
-  const slide = e.target.dataset?.slide;
-  if (slide) { const g = dlg.querySelector('.gallery'); g.scrollBy({ left: slide * g.clientWidth, behavior: 'smooth' }); }
+  if (e.target === dlg || e.target.closest('#dClose')) return dlg.close();
+  const slide = e.target.closest('[data-slide]')?.dataset.slide;
+  if (slide) { const g = $('gal'); g.scrollBy({ left: slide * g.clientWidth, behavior: 'smooth' }); }
 });
 
-// Favourites live in this browser; the share link carries them to another device or person.
-const FAV_STORE = 'finder-favourites-v1';
+// Tap or hover help for Korean terms. The bubble has to sit inside an open dialog to show above it.
+const tip = $('tip');
+document.addEventListener('click', e => {
+  const b = e.target.closest?.('[data-help]');
+  if (!b) return;
+  e.preventDefault();
+  if (tip.matches(':popover-open')) tip.hidePopover();
+  tip.textContent = b.dataset.help;
+  (b.closest('dialog') ?? document.body).append(tip);
+  tip.showPopover();
+  const a = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
+  tip.style.left = Math.max(16, Math.min(a.left, innerWidth - t.width - 16)) + 'px';
+  tip.style.top = (a.top - t.height - 8 > 8 ? a.top - t.height - 8 : a.bottom + 8) + 'px';
+});
+
+// Saved listings live in this browser with a snapshot, so one that disappears from the data still shows what it was.
+const FAV_STORE = 'finder-favourites-v2';
+const favs = new Map();
+const snapshot = r => { const { hay: _, reg, sub, ...rest } = r; return { ...rest, areaText: areaText(r), subText: subText(r) }; };
 function saveFavs() { try { localStorage.setItem(FAV_STORE, JSON.stringify([...favs])); } catch {} }
-function paintFavs() {
-  $('favCount').textContent = `★ Favourites only (${favs.size})`;
-  $('share').hidden = !favs.size;
+function loadFavs() {
+  try { for (const [k, s] of JSON.parse(localStorage.getItem(FAV_STORE)) ?? []) favs.set(k, s); } catch {}
+  try { for (const k of JSON.parse(localStorage.getItem('finder-favourites-v1')) ?? []) if (!favs.has(k) && BY_KEY.has(k)) favs.set(k, snapshot(BY_KEY.get(k))); } catch {}
+  for (const k of favs.keys()) if (BY_KEY.has(k)) favs.set(k, { addr: favs.get(k).addr, ...snapshot(BY_KEY.get(k)) });
+  saveFavs();
 }
+function paintFavs() { $('savedN').textContent = 'Saved ' + favs.size; }
 document.addEventListener('click', e => {
   const b = e.target.closest?.('[data-fav]');
   if (!b) return;
   const key = b.dataset.fav, on = !favs.has(key);
-  on ? favs.add(key) : favs.delete(key);
+  if (on) {
+    const r = BY_KEY.get(key);
+    favs.set(key, snapshot(r));
+    loadShard(shardOf(key)).then(o => { if (favs.has(key) && o[key]?.addr) { favs.get(key).addr = o[key].addr; saveFavs(); } }).catch(() => {});
+  } else favs.delete(key);
   saveFavs();
   paintFavs();
-  for (const el of document.querySelectorAll('[data-fav]')) if (el.dataset.fav === key) { el.setAttribute('aria-pressed', on); el.firstChild.textContent = (on ? '★' : '☆') + el.firstChild.textContent.slice(1); }
-  if ($('favOnly').checked) update();
+  for (const el of document.querySelectorAll('[data-fav]')) if (el.dataset.fav === key) el.setAttribute('aria-pressed', on);
+  if (view === 'saved') paintSaved();
 });
 $('share').addEventListener('click', async () => {
-  const url = location.origin + location.pathname + '#favs=' + [...favs].join(',');
-  try { await navigator.clipboard.writeText(url); $('share').textContent = 'Copied'; setTimeout(() => $('share').textContent = 'Copy favourites link', 2000); }
+  const url = location.origin + location.pathname + '#favs=' + [...favs.keys()].filter(k => BY_KEY.has(k)).join(',');
+  const label = 'Send to another device';
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ title: 'Saved rentals', url }); } catch {} return; }
+  try { await navigator.clipboard.writeText(url); $('share').textContent = 'Link copied'; setTimeout(() => $('share').textContent = label, 2000); }
   catch { prompt('Copy this link', url); }
 });
 
-function paint() {
-  const list = results.slice(0, shown);
-  $('list').innerHTML = list.length ? list.map(rowHtml).join('') : `<div class="empty">${$('favOnly').checked ? 'No favourites yet. Tap the star on a listing to keep it here.' : 'No listings match. Raise a budget limit or clear the district filter.'}</div>`;
-  $('more').hidden = results.length <= shown;
+function savedItems() {
+  const rate = val('rate'), penalty = val('penalty');
+  const items = [...favs.entries()].map(([k, s]) => { const r = BY_KEY.get(k); const x = score(r ?? s, rate, penalty); return { x, gone: !r, addr: s.addr }; });
+  return items.sort((a, b) => a.gone - b.gone || a.x.v - b.x.v);
 }
+function paintSaved() {
+  const items = savedItems();
+  $('savedTitle').textContent = items.length === 1 ? '1 saved listing' : items.length + ' saved listings';
+  $('share').hidden = !items.some(i => !i.gone);
+  $('list').innerHTML = items.length ? items.map(i => cardHtml(i.x, i.gone)).join('') : '<div class="empty">Nothing saved yet. Tap the star on a listing to keep it here.</div>';
+  const rows = [
+    ['Price', ({ x: { r } }) => `<b>${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</b>${r.deal ? `<small>${r.dep ? won(r.dep) + ' deposit' : 'No deposit'}</small>` : ''}`],
+    ['Real monthly cost', ({ x }) => `<b>${won(x.e)}</b><small>Real monthly cost</small>`],
+    ['Size', ({ x: { r } }) => `${sizeText(r)} · ${Math.round(r.m2 / 3.3058)}평${roomsText(r) ? ' · ' + roomsText(r) : ''}<small>Usable size</small>`],
+    ['Age', ({ x: { r } }) => `${r.age === null ? 'Unknown' : r.age === 0 ? 'New build' : r.age + (r.age > 1 ? ' years old' : ' year old')}<small>Building age</small>`],
+    ['Subway', ({ x: { r } }) => `${esc(subText(r))} ${dist(r.subM)}<small>Nearest subway</small>`],
+    ['Address', i => `${esc(i.addr ?? areaText(i.x.r))}<small>${typeText(i.x.r)}</small>`],
+  ];
+  $('compare').innerHTML = items.length ? `<table><thead><tr>${items.map(i => { const r = i.x.r; return `<th scope="col" class="${i.gone ? 'gone' : ''}"><div class="cphoto">${photoTag(r)}${favBtn(r.key, 'star', 22)}</div>${i.gone ? `<span class="ctitle">${esc(r.complex)}</span><small>No longer listed</small>` : `<a class="ctitle" href="#${esc(r.key)}">${esc(r.complex)}</a><small>${esc(areaText(r))}</small>${badge(i.x.v)}`}</th>`; }).join('')}</tr></thead><tbody>${rows.map(([, f]) => `<tr>${items.map(i => `<td class="${i.gone ? 'gone' : ''}">${f(i)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '<div class="empty">Nothing saved yet. Click the star on a listing to keep it here.</div>';
+}
+
+// Map view: OpenStreetMap with grouped pins, loaded the first time it's opened.
+let map = null, cluster = null, mapStale = true, leaflet = null;
+const CDN = 'https://cdn.jsdelivr.net/npm/';
+const addCss = href => document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href }));
+const addJs = src => new Promise((ok, no) => document.head.append(Object.assign(document.createElement('script'), { src, onload: ok, onerror: no })));
+function loadLeaflet() {
+  addCss(CDN + 'leaflet@1.9.4/dist/leaflet.css');
+  return leaflet ??= addJs(CDN + 'leaflet@1.9.4/dist/leaflet.js').then(() => addJs(CDN + 'leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js'));
+}
+function miniHtml(x) {
+  const r = x.r;
+  return `<div class="mphoto">${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
+    <a class="open" href="#${esc(r.key)}" aria-label="Open ${esc(r.complex)}"></a>
+    <div class="cbody"><div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${won(x.e)} a month</div><div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x.v))} · ${sizeText(r)}</div></div>`;
+}
+const badgeText = v => { const b = medV === null ? 0 : Math.round((1 - v / medV) * 100); return b > 0 ? b + '% below median' : b < 0 ? -b + '% above median' : 'At the median'; };
+function paintMap(fit) {
+  if (!map || !mapStale) return;
+  mapStale = false;
+  $('mini').hidden = true;
+  cluster.clearLayers();
+  const pin = above => L.divIcon({ className: 'pin' + (above ? ' above' : ''), iconSize: [16, 16] });
+  const good = pin(false), bad = pin(true);
+  const ms = results.filter(x => x.r.lat != null).map(x => {
+    const m = L.marker([x.r.lat, x.r.lng], { icon: medV !== null && x.v > medV ? bad : good, title: x.r.complex, alt: x.r.complex });
+    m.on('click', () => { $('mini').innerHTML = miniHtml(x); $('mini').hidden = false; });
+    return m;
+  });
+  cluster.addLayers(ms);
+  if (fit && ms.length) map.fitBounds(cluster.getBounds(), { padding: [24, 24] });
+}
+async function openMap() {
+  $('mapWrap').style.setProperty('--map-top', $('mapWrap').getBoundingClientRect().top + 16 + 'px');
+  if (!map) {
+    try { await loadLeaflet(); } catch { $('mapNote').textContent = "Couldn't load the map. Check your connection and try again."; leaflet = null; return; }
+    $('mapNote').hidden = true;
+    map = L.map('map', { zoomControl: !matchMedia('(pointer: coarse)').matches }).setView([37.55, 126.99], 11);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+    cluster = L.markerClusterGroup({
+      chunkedLoading: true, showCoverageOnHover: false, maxClusterRadius: 60,
+      iconCreateFunction: c => { const n = c.getChildCount(), s = n < 10 ? 34 : n < 100 ? 40 : n < 1000 ? 46 : 54; return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster', iconSize: [s, s] }); },
+    });
+    map.addLayer(cluster);
+    map.on('click', () => { $('mini').hidden = true; });
+    mapStale = true;
+    paintMap(true);
+    return;
+  }
+  map.invalidateSize();
+  paintMap();
+}
+
+function paintList(more) {
+  if (view !== 'list') return;
+  const next = results.slice(shown, shown + PAGE);
+  if (!more && !results.length) { $('list').innerHTML = '<div class="empty">No listings match. Raise a budget limit or clear the area filter.</div>'; shown = 0; return; }
+  const html = next.map(x => cardHtml(x)).join('');
+  more ? $('list').insertAdjacentHTML('beforeend', html) : $('list').innerHTML = html;
+  shown += next.length;
+}
+new IntersectionObserver(es => { if (es[0].isIntersecting && view === 'list' && shown < results.length) paintList(true); }, { rootMargin: '1200px' }).observe($('sentinel'));
+
+function setView(v) {
+  view = v;
+  document.documentElement.dataset.view = v;
+  for (const b of $('seg').children) b.setAttribute('aria-pressed', b.dataset.view === v);
+  $('saved').setAttribute('aria-pressed', v === 'saved');
+  $('savedHead').hidden = v !== 'saved';
+  $('mapWrap').hidden = v !== 'map';
+  $('list').hidden = v === 'map';
+  $('compare').hidden = v !== 'saved';
+  $('foot').hidden = v !== 'list';
+  scrollTo(0, 0);
+  if (v === 'map') openMap();
+  if (v === 'saved') paintSaved();
+  if (v === 'list') { shown = 0; paintList(); }
+}
+
+// Chips show the current value of each filter.
+function chipText() {
+  const lim = (k, f) => val(k) === SLIDERS[k].def ? null : f(val(k));
+  const budget = lim('total', v => '≤ ' + won(v)) ?? lim('rent', v => won(v) + '/mo') ?? lim('deposit', v => '≤ ' + won(v) + ' dep.') ?? lim('fee', v => 'fee ≤ ' + won(v));
+  const on = areaBoxes.filter(b => b.checked);
+  const provs = Object.keys(groups).filter(p => regionsOf(p).every(b => b.checked));
+  const area = $('q').value.trim() ? '“' + $('q').value.trim() + '”' : !on.length ? null : provs.length === 1 && on.length === regionsOf(provs[0]).length ? provs[0] : on.length === 1 ? districtText(DATA.regions[+on[0].dataset.reg].label) : on.length + ' districts';
+  const lo = val('minA'), hi = val('maxA');
+  const size = lo && hi !== ANY ? `${lo}–${hi} m²` : lo ? `≥ ${lo} m²` : hi !== ANY ? `≤ ${hi} m²` : null;
+  const off = CHECKS.filter(c => $(c).checked !== !!CHECK_DEFAULTS[c]).length + (val('rate') !== DATA.rate) + (val('penalty') !== DATA.penalty);
+  return [
+    ['budget', 'Budget', budget], ['area', 'Area', area], ['size', 'Size', size],
+    ['rooms', 'Rooms', val('beds') ? val('beds') + '+' : null],
+    ['age', 'Age', val('maxAge') === ANY ? 'Any' : '≤ ' + val('maxAge') + ' yrs', val('maxAge') !== 30],
+    ['places', 'Places', places.length ? places.map(stationName).join(', ') : null],
+    ['more', 'More', off || null],
+  ];
+}
+function paintChips() {
+  $('chips').innerHTML = chipText().map(([k, l, v, active = v != null]) => `<button type="button" data-open="${k}"${active ? ' class="on"' : ''}>${esc(k === 'more' && v == null ? l : l + ': ' + (v ?? (k === 'places' ? 'Add' : 'Any')))}</button>`).join('');
+}
+
+function paintPlaces() {
+  const list = $('placeList');
+  [...list.querySelectorAll('.place')].forEach(e => e.remove());
+  [0, 1].forEach(i => {
+    const ctl = $('ctl_place' + i);
+    ctl.hidden = !places[i];
+    if (!places[i]) return;
+    ctl.querySelector('label').textContent = `Max distance to ${stationName(places[i])}`;
+    ctl.insertAdjacentHTML('beforebegin', `<div class="place">${esc(stationName(places[i]))} <button type="button" data-unplace="${i}">Remove</button></div>`);
+  });
+  $('placeAdd').hidden = places.length >= 2;
+  $('placeLabel').textContent = places.length ? 'Add a second place' : 'Add a place, like work or family';
+  paintSort();
+}
+const SORTS = [['v', 'Best value first'], ['e', 'Lowest real cost'], ['a', 'Largest usable size'], ['n', 'Newest building'], ['d', 'Lowest deposit']];
+function paintSort() {
+  const cur = $('sort').value || 'v';
+  $('sort').innerHTML = [...SORTS, ...places.map((n, i) => ['p' + i, 'Closest to ' + stationName(n)])].map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('');
+  $('sort').value = cur;
+  if (!$('sort').value) $('sort').value = 'v';
+}
+$('placeQ').addEventListener('input', () => {
+  const q = $('placeQ').value.trim().toLowerCase();
+  if (!q) { $('placeHits').innerHTML = ''; return; }
+  const hits = [...new Set(DATA.stations)].filter(n => !places.includes(n) && (n.includes(q) || stationName(n).toLowerCase().includes(q))).sort((a, b) => stationName(a).toLowerCase().indexOf(q) - stationName(b).toLowerCase().indexOf(q)).slice(0, 6);
+  $('placeHits').innerHTML = hits.length ? hits.map(n => `<button type="button" data-place="${esc(n)}">${esc(stationName(n))} <small>${esc(n)}</small></button>`).join('') : '<p class="note">No station with that name.</p>';
+});
+document.addEventListener('click', e => {
+  const add = e.target.closest?.('[data-place]'), rm = e.target.closest?.('[data-unplace]');
+  if (!add && !rm) return;
+  if (add) { places.push(add.dataset.place); setVal('place' + (places.length - 1), ANY); $('placeQ').value = ''; $('placeHits').innerHTML = ''; }
+  else {
+    const i = +rm.dataset.unplace;
+    places.splice(i, 1);
+    if (i === 0) setVal('place0', val('place1'));
+    setVal('place1', ANY);
+    if (/^p\d/.test($('sort').value)) $('sort').value = 'v';
+  }
+  paintPlaces();
+  update();
+});
+
+// Sheets: the section moves into the sheet on phones and back when it closes.
+const sheet = $('sheet');
+let sheetSec = null;
+document.addEventListener('click', e => {
+  const k = e.target.closest?.('[data-open]')?.dataset.open;
+  if (!k) return;
+  sheetHome();
+  sheetSec = secEl(k);
+  $('sheetTitle').textContent = sheetSec.dataset.title;
+  $('sheetBody').append(sheetSec);
+  sheet.showModal();
+  paintCount();
+});
+sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
+function sheetHome() {
+  if (!sheetSec) return;
+  const i = ALL_SECS.indexOf(sheetSec);
+  $('secHome').insertBefore(sheetSec, ALL_SECS[i + 1]?.parentElement === $('secHome') ? ALL_SECS[i + 1] : null);
+  sheetSec = null;
+}
+sheet.addEventListener('close', () => { if (!sheet.open) sheetHome(); });
+$('sheetDone').addEventListener('click', () => sheet.close());
+$('sheetReset').addEventListener('click', () => { resetSection(sheetSec); update(); });
+function paintCount() {
+  const n = results.length.toLocaleString('en-US');
+  $('sheetDone').textContent = results.length ? `Show ${n} listing${results.length === 1 ? '' : 's'}` : 'No listings match';
+  $('count').textContent = `${n} listing${results.length === 1 ? '' : 's'}, updated ${DATA.date}`;
+}
+
+$('areas').addEventListener('click', e => {
+  const p = e.target.closest('[data-prov]')?.dataset.prov;
+  if (!p) return;
+  const boxes = regionsOf(p), to = !boxes.every(b => b.checked);
+  boxes.forEach(b => b.checked = to);
+  schedule();
+});
 
 function update() {
   for (const k of Object.keys(SLIDERS)) $('o_' + k).textContent = SLIDERS[k].fmt(val(k));
-  $('fR').textContent = val('rate').toFixed(1) + '%';
-  $('fP').textContent = val('penalty') + '%';
-  const n = areaBoxes.filter(b => b.checked).length;
-  $('areasSum').textContent = n ? n + ' district' + (n > 1 ? 's' : '') + ' selected' : 'All districts';
   results = compute();
-  shown = 100;
-  $('count').textContent = results.length.toLocaleString('en-US') + (results.length === 1 ? ' listing' : ' listings');
-  const me = median(results.map(x => x.e));
   medV = median(results.map(x => x.v));
-  $('medCost').textContent = me === null ? '' : 'Median cost ' + won(me) + ' a month';
-  $('medVal').textContent = medV === null ? '' : 'Median value ₩' + (medV * 10).toFixed(1) + 'k /m²';
-  paint();
+  shown = 0;
+  paintCount();
+  paintChips();
+  mapStale = true;
+  if (view === 'list') paintList();
+  if (view === 'map') paintMap();
+  if (view === 'saved') paintSaved();
   saveState();
 }
 
 let pending = false;
 const schedule = () => { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; update(); }); };
-document.querySelector('.rail').addEventListener('input', schedule);
-$('summary').addEventListener('change', schedule);
-$('reset').addEventListener('click', () => { reset(); update(); });
-$('more').addEventListener('click', () => { shown += 100; paint(); });
-$('toggle').addEventListener('click', () => { const closed = $('rail').classList.toggle('closed'); $('toggle').textContent = closed ? 'Show filters' : 'Hide filters'; });
+for (const el of [$('rail'), sheet]) el.addEventListener('input', e => { if (e.target.id !== 'placeQ') schedule(); });
+$('sort').addEventListener('change', schedule);
+$('reset').addEventListener('click', () => { resetAll(); update(); });
+$('saved').addEventListener('click', () => setView(view === 'saved' ? 'list' : 'saved'));
+$('seg').addEventListener('click', e => { const v = e.target.closest('button')?.dataset.view; if (v) setView(v); });
 
-$('sub').textContent = `${ROWS.length.toLocaleString('en-US')} apartment and officetel rentals in Seoul and nearby cities · Dabang and Zigbang, ${DATA.date}`;
-$('foot').textContent = `Usable size is the exclusive area (전용면적) from the listing, and age comes from the building's approval date. Zigbang publishes no maintenance figure for apartments, so those fees and any others missing are estimated from the median per m² of the same type in the same district, and flagged. Subway distances are straight lines to the nearest station, not walking routes. Single rooms are detected from listing titles only, so some will slip through: if a price looks too good for the size, read the listing. Agent details are not shown here, so use the link in a listing to contact them. Listings are a snapshot and may already be gone.`;
-reset();
+// The List/Map switch sits in the top bar on desktop and beside the sort on phones.
+const wide = matchMedia('(min-width: 900px)');
+const placeSeg = () => (wide.matches ? $('segTop') : $('segBar')).append($('seg'));
+wide.addEventListener('change', () => { placeSeg(); if (wide.matches && sheet.open) sheet.close(); });
+placeSeg();
+
+$('foot').textContent = `${ROWS.length.toLocaleString('en-US')} apartment and officetel rentals in Seoul and nearby cities, from Dabang and Zigbang. Usable size is the exclusive area (전용면적) from the listing, and age comes from the building's approval date. Zigbang publishes no maintenance figure for apartments, so those fees and any others missing are estimated from the median per m² of the same type in the same district. Distances are straight lines, not walking routes. Single rooms are detected from listing text and room counts, so some will slip through: if a price looks too good for the size, read the listing. Agent details aren't shown here, so use the link in a listing to contact them. Listings are a snapshot and may already be gone.`;
+loadFavs();
+paintSort();
+paintPlaces();
+resetAll();
 loadState();
 const shared = location.hash.match(/^#favs=(.+)/);
 if (shared) {
-  for (const k of decodeURIComponent(shared[1]).split(',')) if (BY_KEY.has(k)) favs.add(k);
+  for (const k of decodeURIComponent(shared[1]).split(',')) if (BY_KEY.has(k)) favs.set(k, snapshot(BY_KEY.get(k)));
   saveFavs();
-  $('favOnly').checked = true;
   history.replaceState(null, '', location.pathname + location.search);
 }
 paintFavs();
 update();
+setView(shared ? 'saved' : 'list');
 route();
 </script>
 </html>

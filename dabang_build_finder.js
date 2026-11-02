@@ -24,8 +24,9 @@ function money(s) {
 }
 
 // Rent for one room or a split-off part of a unit, but the size is still the whole unit, so these rank falsely high.
-// ponytail: titles only, descriptions aren't exported; fetch detail memos if misses become a problem
+// ponytail: this loose rule only reads titles; descriptions get just the unambiguous phrase, and a one-room apartment of 70 m² or more is almost always a split unit
 const PARTIAL = /방\s*(1|한)\s*(개|칸)(?!\s*(확장|더|추가))|분리형\s*원룸|세대\s*(별도\s*)?분리|주인\s*세대|주인과\s*함께|부분\s*임대|쉐어|셰어|룸메|하숙/;
+const isPartial = r => PARTIAL.test(r.title) || /세대\s*분리형/.test(r.detail?.memo ?? '') || (!r.cat && r.beds === 1 && r.m2 >= 70);
 
 function parseListing(l) {
   const [deposit, rent = '0'] = l.priceTitle.split('/');
@@ -120,6 +121,9 @@ function selftest() {
   assert.strictEqual(rate, 6);
   for (const t of ['방1개쓰실분,여성분우대', 'M. 아파트34평 방1칸 사용', '세대 별도 분리형 원룸', '방 1개만 사용할 시 가격임', '전용25 주인세대와 분리']) assert.ok(PARTIAL.test(t), t);
   for (const t of ['거실.방1칸 확장, 올수리', '방3개,욕실2개', '일부수리 깨끗', '방1,거실']) assert.ok(!PARTIAL.test(t), t);
+  assert.ok(isPartial({ title: '깨끗함', cat: 0, beds: 3, m2: 84, detail: { memo: '세대분리형 원룸 (26㎡)' } }));
+  assert.ok(isPartial({ title: '깨끗함', cat: 0, beds: 1, m2: 84.99 }));
+  assert.ok(!isPartial({ title: '깨끗함', cat: 1, beds: 1, m2: 84.99, detail: { memo: '카셰어링 가능' } }));
   console.log('selftest ok');
 }
 
@@ -240,7 +244,7 @@ function main() {
   const rows = merged.map(r => {
     const [subM, sub] = nearestStation(r.lat, r.lng, stations);
     r.detail.station = [`${stations[sub].name} (${stations[sub].description})`, metres(subM)];
-    return [r.key, r.cat, r.monthly ? 1 : 0, r.deposit, r.rent, r.fee, r.m2, r.complex, r.dong, r.reg, r.floor, r.title, r.short ? 1 : 0, r.lh ? 1 : 0, r.price, PARTIAL.test(r.title) ? 1 : 0, r.age, r.photo, r.feeEst ? 1 : 0, r.sizeEst ? 1 : 0, r.beds, subM, sub, r.also ? 1 : 0];
+    return [r.key, r.cat, r.monthly ? 1 : 0, r.deposit, r.rent, r.fee, r.m2, r.complex, r.dong, r.reg, r.floor, r.title, r.short ? 1 : 0, r.lh ? 1 : 0, r.price, isPartial(r) ? 1 : 0, r.age, r.photo, r.feeEst ? 1 : 0, r.sizeEst ? 1 : 0, r.beds, subM, sub, r.also ? 1 : 0, +r.lat.toFixed(5), +r.lng.toFixed(5)];
   });
 
   // Details load per listing on click; the page itself only carries what the filters need.
@@ -256,13 +260,13 @@ function main() {
   for (const [s, o] of shards) fs.writeFileSync(`${DIR}/${s}.json`, JSON.stringify(o));
 
   const date = new Date(fs.statSync('dabang_details.jsonl').mtime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  const data = { date, rate: Math.round((rate ?? 5.5) * 10) / 10, penalty: AGE_PENALTY, regions, stations: stations.map(s => s.name), rows };
+  const data = { date, rate: Math.round((rate ?? 5.5) * 10) / 10, penalty: AGE_PENALTY, regions, stations: stations.map(s => s.name), stationAt: stations.map(s => [+s.lat.toFixed(5), +s.lng.toFixed(5)]), rows };
   const html = fs.readFileSync('dabang_finder.template.html', 'utf8').replace('__DATA__', () => JSON.stringify(data).replace(/</g, '\\u003c'));
   fs.writeFileSync(SITE + '/index.html', html);
 
   // Sanity output: what the default view ranks first, and anything suspicious.
   const score = r => (r.rent + r.fee + r.deposit * data.rate / 1200) / r.m2 * (1 + AGE_PENALTY / 100 * (r.age ?? 0) / 10);
-  const pool = merged.filter(r => r.age !== null && r.age <= 30 && !r.lh && !r.short && !PARTIAL.test(r.title)).sort((a, b) => score(a) - score(b));
+  const pool = merged.filter(r => r.age !== null && r.age <= 30 && !r.lh && !r.short && !isPartial(r)).sort((a, b) => score(a) - score(b));
   console.log({ dabang: dabang.length, zigbang: zigbang.length, merged: merged.length, bothSites: merged.filter(r => r.also).length, regions: regions.length, unnamed: regions.filter(g => !/[A-Za-z]/.test(g.label)).map(g => g.key), impliedRate: rate, pairs, kb: Math.round(html.length / 1024), shardKb: Math.round([...shards.values()].reduce((n, o) => n + JSON.stringify(o).length, 0) / 1024), feeUnknown, sizeEst: merged.filter(r => r.sizeEst).length, ageUnknown: merged.filter(r => r.age === null).length, defaultPool: pool.length, noPhoto: merged.filter(r => !r.photo).length });
   console.log('best', pool.slice(0, 10).map(r => `${r.key[0]} ${r.price} ${r.m2}m² fee${r.fee}${r.feeEst ? '~' : ''} age${r.age} ${r.complex} ${(score(r) * 10).toFixed(1)}k`));
   console.log('worst', pool.slice(-3).map(r => `${r.price} ${r.m2}m² fee${r.fee} ${r.complex} ${(score(r) * 10).toFixed(1)}k`));
