@@ -4,128 +4,159 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Seoul Rental Value Finder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: a fixed filter rail like a surveyor's worksheet beside a ranked ledger of listings. */
+/* Layout: a property-search tool. Filters in a fixed sidebar, ranked listing cards with the photo first and the value verdict at the right edge. */
 :root {
-  --bg: #eef2f0; --panel: #f9fbfa; --ink: #16231f; --muted: #5a6b65; --line: #d0dbd6;
-  --accent: #0b6e5f; --accent-soft: #d9ece7; --warn: #8a5a00;
-  --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --bg: #f3f5f8; --surface: #ffffff; --ink: #161b26; --muted: #5c6575; --line: #e0e4ea; --fill: #e8ebf0;
+  --accent: #2447c8; --accent-soft: #e8edfc;
+  --good: #12764f; --good-soft: #e0f3ea; --warn: #8f5a00; --warn-soft: #fbf0dc;
+  --sans: "Schibsted Grotesk", "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #111816; --panel: #18211e; --ink: #e6eeeb; --muted: #94a59f; --line: #2c3935;
-  --accent: #5fc9b5; --accent-soft: #1d3a34; --warn: #e0b45c; color-scheme: dark } }
+  --bg: #0f1219; --surface: #171b24; --ink: #e9ecf2; --muted: #98a1b2; --line: #2a303c; --fill: #232834;
+  --accent: #8aa4ff; --accent-soft: #1e2742;
+  --good: #5fd3a4; --good-soft: #12302a; --warn: #e9b766; --warn-soft: #33280f; color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #111816; --panel: #18211e; --ink: #e6eeeb; --muted: #94a59f; --line: #2c3935;
-  --accent: #5fc9b5; --accent-soft: #1d3a34; --warn: #e0b45c; color-scheme: dark }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.45; }
+  --bg: #0f1219; --surface: #171b24; --ink: #e9ecf2; --muted: #98a1b2; --line: #2a303c; --fill: #232834;
+  --accent: #8aa4ff; --accent-soft: #1e2742;
+  --good: #5fd3a4; --good-soft: #12302a; --warn: #e9b766; --warn-soft: #33280f; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--sans); }
 [hidden] { display: none !important; }
-.wrap { max-width: 1320px; margin: 0 auto; padding-block: 24px 48px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-h1 { font-size: 1.7rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
-.sub { color: var(--muted); margin: 4px 0 18px; }
-.formula { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; margin-bottom: 18px; display: grid; gap: 6px; }
-.formula code { font-family: var(--mono); font-size: 0.92rem; overflow-wrap: anywhere; }
-.formula b { color: var(--accent); font-weight: 500; }
-.formula p { margin: 0; color: var(--muted); font-size: 0.86rem; max-width: 90ch; }
-.layout { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 20px; align-items: start; }
-.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 16px; }
-.group { display: grid; gap: 10px; }
-.group h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 600; }
-.ctl { display: grid; gap: 2px; }
-.ctl .top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.88rem; }
-.ctl output { font-family: var(--mono); font-size: 0.82rem; color: var(--accent); white-space: nowrap; }
-input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chips label { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 4px; padding: 3px 8px; font-size: 0.82rem; cursor: pointer; }
-.chips input { accent-color: var(--accent); margin: 0; }
-.chips label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
-.check { display: flex; gap: 8px; font-size: 0.86rem; align-items: flex-start; cursor: pointer; }
-.check input { accent-color: var(--accent); margin-top: 4px; }
-details.areas summary { cursor: pointer; font-size: 0.88rem; }
-details.areas h3 { font-size: 0.78rem; margin: 10px 0 6px; color: var(--muted); font-weight: 600; }
-input[type=search] { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); font: inherit; font-size: 0.88rem; }
-button { font: inherit; font-size: 0.86rem; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
-button:hover { border-color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 28px 56px; display: grid; gap: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 24px; }
+h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; font-size: 0.87rem; }
+
+.how { background: var(--accent-soft); border-radius: 8px; padding: 12px 16px; font-size: 0.9rem; }
+.how summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; list-style: none; }
+.how summary::-webkit-details-marker { display: none; }
+.how .eq { font-weight: 500; min-width: 0; }
+.how .eq b { font-weight: 700; color: var(--accent); }
+.how .more-link { color: var(--accent); font-size: 0.82rem; font-weight: 500; white-space: nowrap; margin-left: auto; }
+.how[open] .more-link::after { content: " (hide)"; }
+.how p { margin: 10px 0 0; max-width: 78ch; color: var(--muted); font-size: 0.87rem; }
+
+.layout { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 20px; align-items: start; }
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: grid; }
+.rail-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; font-weight: 600; }
+.group { display: grid; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--line); }
+.group h2 { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0; font-weight: 600; }
+.stack { display: grid; gap: 12px; }
+.ctl { display: grid; gap: 4px; }
+.ctl .top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.87rem; }
+.ctl output { font-weight: 600; font-size: 0.84rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips label { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: 0.84rem; cursor: pointer; user-select: none; }
+.chips input { position: absolute; opacity: 0; width: 0; height: 0; }
+.chips label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.chips label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: flex; gap: 8px; font-size: 0.85rem; align-items: flex-start; cursor: pointer; color: var(--muted); }
+.check input { accent-color: var(--accent); margin: 3px 0 0; flex: none; }
+details.areas summary { cursor: pointer; font-size: 0.87rem; }
+details.areas h3 { font-size: 0.78rem; margin: 12px 0 6px; color: var(--muted); font-weight: 600; }
+input[type=search] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.87rem; }
+select { font: inherit; font-size: 0.87rem; padding: 6px 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+button { font: inherit; font-size: 0.87rem; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--accent); }
+.link { border: 0; padding: 0; background: none; color: var(--accent); font-size: 0.84rem; font-weight: 500; }
 .toggle { display: none; }
-.summary { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline; margin-bottom: 10px; }
-.summary .big { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.summary span { color: var(--muted); font-size: 0.88rem; }
-.summary .sortbox { margin-left: auto; display: flex; gap: 6px; align-items: center; }
-select { font: inherit; font-size: 0.86rem; padding: 4px 6px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; }
-.thumb { display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: 4px; overflow: hidden; background: var(--line); color: var(--muted); font-size: 0.72rem; }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.row { display: grid; grid-template-columns: 42px 112px minmax(0, 1fr) 118px 118px 118px; gap: 12px; align-items: center; padding: 11px 12px;
-  background: var(--panel); border: 1px solid var(--line); border-top-width: 0; color: inherit; text-decoration: none; }
-.row:first-child { border-top-width: 1px; border-radius: 6px 6px 0 0; }
-.row:hover { background: var(--accent-soft); }
-.head { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: transparent; border: 0; padding-block: 2px 6px; }
-.head:hover { background: transparent; }
-.rank { font-family: var(--mono); color: var(--muted); font-size: 0.82rem; }
-.name { min-width: 0; }
-.name .price { font-weight: 600; }
-.name .place { font-size: 0.86rem; overflow-wrap: anywhere; }
-.name .ttl { color: var(--muted); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tag { display: inline-block; font-size: 0.7rem; padding: 0 5px; border-radius: 3px; border: 1px solid var(--line); margin-left: 4px; color: var(--muted); font-weight: 400; vertical-align: 1px; }
-.tag.warn { color: var(--warn); border-color: var(--warn); }
-.num { font-family: var(--mono); font-size: 0.88rem; text-align: right; font-variant-numeric: tabular-nums; }
-.num small { display: block; color: var(--muted); font-size: 0.72rem; }
-.num.main { color: var(--accent); font-weight: 500; }
-.empty { padding: 32px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 6px; }
-.more { display: block; margin: 14px auto 0; }
-.foot { color: var(--muted); font-size: 0.8rem; margin-top: 18px; max-width: 90ch; }
-@media (max-width: 1180px) {
+
+.summary { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline; margin-bottom: 12px; }
+.summary .big { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.01em; }
+.summary span { color: var(--muted); font-size: 0.85rem; }
+.sortbox { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.sortbox label { font-size: 0.85rem; color: var(--muted); }
+
+#list { display: grid; gap: 10px; }
+.card { display: grid; grid-template-columns: 184px minmax(0, 1fr) 216px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; color: inherit; text-decoration: none; transition: border-color 0.12s; }
+.card:hover { border-color: var(--accent); }
+.photo { position: relative; min-height: 138px; background: var(--fill); color: var(--muted); font-size: 0.78rem; display: grid; place-items: center; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.rank { position: absolute; z-index: 1; top: 8px; left: 8px; min-width: 24px; padding: 1px 6px; border-radius: 5px; background: var(--surface); color: var(--ink); font-size: 0.76rem; font-weight: 600; text-align: center; }
+.body { padding: 13px 16px; min-width: 0; display: grid; gap: 3px; align-content: center; }
+.price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.price strong { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
+.price small { color: var(--muted); font-size: 0.78rem; }
+.place { font-size: 0.92rem; overflow-wrap: anywhere; }
+.place b { font-weight: 600; }
+.facts { display: flex; flex-wrap: wrap; gap: 0 12px; color: var(--muted); font-size: 0.84rem; }
+.facts .old { color: var(--warn); font-weight: 500; }
+.ttl { color: var(--muted); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.flags span { font-size: 0.72rem; font-weight: 500; padding: 0 6px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); }
+.verdict { padding: 13px 16px; border-left: 1px solid var(--line); display: grid; gap: 8px; align-content: center; }
+.stat label { display: block; font-size: 0.72rem; color: var(--muted); }
+.stat .n { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+.stat .n small { font-size: 0.76rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.stat .n.sec { font-size: 0.98rem; font-weight: 600; }
+.stat p { margin: 1px 0 0; font-size: 0.73rem; color: var(--muted); line-height: 1.35; }
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 1px 7px; border-radius: 4px; margin-top: 3px; background: var(--fill); color: var(--muted); }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+.more { display: block; margin: 16px auto 0; }
+.foot { color: var(--muted); font-size: 0.8rem; margin: 18px 0 0; max-width: 78ch; }
+
+@media (max-width: 1080px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .rail { position: static; max-height: none; }
   .rail.closed > :not(.toggle) { display: none; }
-  .toggle { display: block; width: 100%; }
+  .toggle { display: block; margin: 12px 16px; }
+  .rail:not(.closed) .toggle { margin-bottom: 0; }
+  .rail.closed { border: 0; background: none; }
+  .rail.closed .toggle { margin: 0; }
 }
-@media (max-width: 860px) {
-  .head { display: none; }
-  .row { grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
-  .row .thumb { grid-column: 2 / -1; aspect-ratio: 16 / 9; }
-  .row .name { grid-column: 2 / -1; }
-  .row .rank { grid-row: 1; }
-  .row .num:nth-of-type(n) { text-align: left; }
-  .row .main { grid-column: 2; }
-  .row .num::before { content: attr(data-l); display: block; color: var(--muted); font-size: 0.68rem; font-family: var(--sans); }
-  .summary .sortbox { margin-left: 0; }
+@media (max-width: 720px) {
+  .wrap { padding-block: 18px 40px; }
+  .how .more-link { margin-left: 0; }
+  .sortbox { margin-left: 0; }
+  .card { grid-template-columns: 112px minmax(0, 1fr); }
+  .photo { min-height: 112px; }
+  .body { padding: 10px 12px; }
+  .verdict { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-content: start; border-left: 0; border-top: 1px solid var(--line); padding: 10px 12px; }
 }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 </style>
 
 <div class="wrap">
-  <h1>Seoul Rental Value Finder</h1>
-  <p class="sub" id="sub"></p>
+  <header>
+    <h1>Seoul Rental Value Finder</h1>
+    <p class="sub" id="sub"></p>
+  </header>
 
-  <section class="formula" aria-label="Formula">
-    <code>real monthly cost = rent + maintenance + deposit × <b id="fR"></b> ÷ 12</code>
-    <code>age factor = 1 + <b id="fP"></b> × building age ÷ 10</code>
-    <code>value = real monthly cost ÷ usable m² × age factor  <span style="color:var(--muted)">(lower is better)</span></code>
-    <p>You get a deposit back, so only the cost of having that money locked up counts: loan interest or lost savings. Set that rate below. The default is what Dabang's own listings imply when jeonse and monthly offers exist in the same complex at the same size.</p>
-    <p>Old buildings bring problems the rent doesn't show, so the age factor makes them earn their place: at the default, a 30-year-old building counts as 1.9× as expensive per m² as a new one, and anything older is hidden. Both are preferences, not measurements, so set them to taste. Age is years since the building's official approval date (사용승인일).</p>
-  </section>
+  <details class="how">
+    <summary><span class="eq">Value = (rent + maintenance + deposit × <b id="fR"></b> ÷ 12) ÷ usable m² × (1 + <b id="fP"></b> × age ÷ 10). Lower is better.</span><span class="more-link">How this works</span></summary>
+    <p>You get a deposit back, so only the cost of having that money locked up counts: loan interest or lost savings. The default rate is what Dabang's own listings imply when jeonse and monthly offers exist in the same complex at the same size. Set it to your own rate under Formula settings.</p>
+    <p>Old buildings bring problems the rent doesn't show, so age makes them earn their place. At the default, a 30-year-old building counts as 1.9× as expensive per m² as a new one, and anything older is hidden. Both are preferences, not measurements, so set them to taste. Age is years since the building's official approval date (사용승인일).</p>
+  </details>
 
   <div class="layout">
     <aside class="rail closed" id="rail">
       <button class="toggle" id="toggle" type="button">Show filters</button>
+      <div class="rail-head"><span>Filters</span><button class="link" type="button" id="reset">Reset all</button></div>
       <div class="group">
         <h2>Type</h2>
         <div class="chips" id="types"></div>
       </div>
       <div class="group">
         <h2>Budget</h2>
-        <div id="budget" class="group"></div>
+        <div id="budget" class="stack"></div>
       </div>
       <div class="group">
         <h2>Size</h2>
-        <div id="size" class="group"></div>
+        <div id="size" class="stack"></div>
       </div>
       <div class="group">
         <h2>Building</h2>
-        <div id="building" class="group"></div>
+        <div id="building" class="stack"></div>
       </div>
       <div class="group">
         <h2>Area</h2>
@@ -134,7 +165,7 @@ select { font: inherit; font-size: 0.86rem; padding: 4px 6px; background: var(--
       </div>
       <div class="group">
         <h2>Formula settings</h2>
-        <div id="knobs" class="group"></div>
+        <div id="knobs" class="stack"></div>
       </div>
       <div class="group">
         <h2>Include</h2>
@@ -145,7 +176,6 @@ select { font: inherit; font-size: 0.86rem; padding: 4px 6px; background: var(--
         <label class="check"><input type="checkbox" id="shortTerm"> Short-term rentals (단기)</label>
         <label class="check"><input type="checkbox" id="lh"> LH public housing (has eligibility rules)</label>
       </div>
-      <button type="button" id="reset">Reset all filters</button>
     </aside>
 
     <main style="min-width:0">
@@ -153,9 +183,9 @@ select { font: inherit; font-size: 0.86rem; padding: 4px 6px; background: var(--
         <div class="big" id="count"></div>
         <span id="medCost"></span>
         <span id="medVal"></span>
-        <div class="sortbox"><label for="sort" style="font-size:.86rem;color:var(--muted)">Sort</label>
+        <div class="sortbox"><label for="sort">Sort</label>
           <select id="sort">
-            <option value="v">Best value (cost per m²)</option>
+            <option value="v">Best value</option>
             <option value="e">Lowest monthly cost</option>
             <option value="a">Largest usable size</option>
             <option value="n">Newest building</option>
@@ -163,7 +193,6 @@ select { font: inherit; font-size: 0.86rem; padding: 4px 6px; background: var(--
           </select>
         </div>
       </div>
-      <div class="row head"><div>#</div><div></div><div>Listing</div><div class="num">Value</div><div class="num">Real cost</div><div class="num">Usable size</div></div>
       <div id="list"></div>
       <button class="more" id="more" type="button" hidden>Show 100 more</button>
       <p class="foot" id="foot"></p>
@@ -190,7 +219,7 @@ const SLIDERS = {
   minA: { box: 'size', label: 'Min usable size', fmt: v => v + ' m² · ' + Math.round(v / 3.3058) + '평', def: 0, steps: seq(0, 150, 5) },
   maxA: { box: 'size', label: 'Max usable size', fmt: anyOr(v => v + ' m² · ' + Math.round(v / 3.3058) + '평'), def: ANY, steps: [...seq(10, 150, 5), 175, 200, ANY] },
   maxAge: { box: 'building', label: 'Max building age', fmt: anyOr(v => v + ' years'), def: 30, steps: [...seq(0, 40, 5), ANY] },
-  penalty: { box: 'building', label: 'Old-building penalty', fmt: v => v ? '+' + v + '% per 10 years' : 'Off', def: DATA.penalty, steps: seq(0, 100, 5) },
+  penalty: { box: 'building', label: 'Old-building penalty', fmt: v => v ? '+' + v + '% per 10 yrs' : 'Off', def: DATA.penalty, steps: seq(0, 100, 5) },
   rate: { box: 'knobs', label: 'Cost of locked-up money', fmt: v => v.toFixed(1) + '% a year', def: DATA.rate, steps: [...new Set([...seq(0, 100, 5).map(x => x / 10), DATA.rate])].sort((a, b) => a - b) },
   ratio: { box: 'knobs', label: 'Apartment usable share', fmt: v => Math.round(v * 100) + '% of listed', def: DATA.ratio, steps: [...new Set([...seq(60, 100, 1).map(x => x / 100), DATA.ratio])].sort((a, b) => a - b) },
 };
@@ -244,7 +273,7 @@ function loadState() {
 
 const median = a => { if (!a.length) return null; const s = Float64Array.from(a).sort(); return s[s.length >> 1]; };
 const isLow = f => f === '저층' || (/^\d+층$/.test(f) && parseInt(f) <= 2);
-let shown = 100, results = [];
+let shown = 100, results = [], medV = null;
 
 function compute() {
   const rate = val('rate'), ratio = val('ratio'), penalty = val('penalty'), maxAge = val('maxAge');
@@ -277,21 +306,35 @@ function compute() {
 }
 
 const esc = s => s.replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+const floorText = f => f === '저층' ? 'Low floor' : f === '중층' ? 'Mid floor' : f === '고층' ? 'High floor' : /^\d+층$/.test(f) ? 'Floor ' + parseInt(f) : f === '-' ? '' : f;
+const ageText = a => a === null ? '' : a === 0 ? 'New build' : a === 1 ? '1 year old' : a === 41 ? '41+ years old' : a + ' years old';
+function medianPill(v) {
+  if (medV === null) return '';
+  const pct = Math.round((v / medV - 1) * 100);
+  return pct <= -10 ? `<span class="pill good">${-pct}% below median</span>` : pct >= 10 ? `<span class="pill warn">${pct}% above median</span>` : '<span class="pill">Near median</span>';
+}
 function rowHtml({ r, a, e, v }, i) {
   const rate = val('rate');
   const parts = [r.rent ? won(r.rent) + ' rent' : '', r.fee === null ? 'fee unknown' : r.fee ? won(r.fee) + ' fee' : '', r.dep ? won(r.dep * rate / 100 / 12) + ' deposit cost' : ''].filter(Boolean).join(' + ');
-  const tags = [r.deal ? 'Monthly' : 'Jeonse', r.cat ? 'Officetel' : 'Apartment', r.floor !== '-' ? r.floor : '', r.age === null ? '' : r.age === 41 ? '41+ yrs old' : r.age === 0 ? 'New build' : r.age === 1 ? '1 yr old' : r.age + ' yrs old'].filter(Boolean).map(t => `<span class="tag">${t}</span>`).join('')
-    + (r.age === null ? '<span class="tag warn">Age unknown</span>' : '') + (r.partial ? '<span class="tag warn">Single room?</span>' : '') + (r.short ? '<span class="tag warn">Short-term</span>' : '') + (r.lh ? '<span class="tag warn">LH</span>' : '') + (r.fee === null ? '<span class="tag warn">Fee unknown</span>' : '');
+  const dep = r.dep ? won(r.dep) + ' deposit' : 'No deposit';
+  const size = r.cat ? `${a.toFixed(0)} m² usable · ${Math.round(a / 3.3058)}평` : `~${a.toFixed(0)} m² usable · ${Math.round(a / 3.3058)}평 · listed ${r.m2.toFixed(0)} m²`;
+  const facts = [r.cat ? 'Officetel' : 'Apartment', size, floorText(r.floor)].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')
+    + (r.age === null ? '' : `<span${r.age >= 25 ? ' class="old"' : ''}>${ageText(r.age)}</span>`);
+  const flags = [r.age === null && 'Age unknown', r.fee === null && 'Fee unknown', r.partial && 'Single room?', r.short && 'Short-term', r.lh && 'LH'].filter(Boolean).map(t => `<span>${t}</span>`).join('');
   const reg = DATA.regions[r.reg];
-  return `<a class="row" href="https://dabangapp.com/room/${r.id}" target="_blank" rel="noopener">
-    <div class="rank">${i + 1}</div>
-    <div class="thumb">${r.photo ? `<img src="https://d1774jszgerdmk.cloudfront.net/512/${esc(r.photo)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
-    <div class="name"><div class="price">${esc(r.price)} <span style="font-weight:400;color:var(--muted);font-size:.84rem">${r.deal ? won(r.dep) + ' deposit, ' + won(r.rent) + '/mo' : won(r.dep) + ' deposit'}</span>${tags}</div>
-      <div class="place">${esc(r.complex)} · ${esc(r.dong)}, ${esc(reg.label)}</div>
-      <div class="ttl">${esc(r.title)}</div></div>
-    <div class="num main" data-l="Value">₩${(v * 10).toFixed(1)}k<small>per m², age-adjusted</small></div>
-    <div class="num" data-l="Real cost">${won(e)}<small>${parts || 'no cost data'}</small></div>
-    <div class="num" data-l="Usable size">${r.cat ? '' : '~'}${a.toFixed(0)} m²<small>${Math.round(a / 3.3058)}평${r.cat ? '' : ', listed ' + r.m2.toFixed(0) + ' m²'}</small></div>
+  return `<a class="card" href="https://dabangapp.com/room/${esc(r.id)}" target="_blank" rel="noopener">
+    <div class="photo"><span class="rank">${i + 1}</span>${r.photo ? `<img src="https://d1774jszgerdmk.cloudfront.net/512/${esc(r.photo)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
+    <div class="body">
+      <div class="price"><strong>${r.deal ? dep + ' · ' + won(r.rent) + '/mo' : dep}</strong><small>${r.deal ? '월세' : '전세'} ${esc(r.price)}</small></div>
+      <div class="place"><b>${esc(r.complex)}</b> · ${esc(r.dong)}, ${esc(reg.label)}</div>
+      <div class="facts">${facts}</div>
+      <div class="ttl">${esc(r.title)}</div>
+      ${flags ? `<div class="flags">${flags}</div>` : ''}
+    </div>
+    <div class="verdict">
+      <div class="stat"><label>Value</label><div class="n">₩${(v * 10).toFixed(1)}k<small> /m²</small></div>${medianPill(v)}</div>
+      <div class="stat"><label>Real monthly cost</label><div class="n sec">${won(e)}</div><p>${parts || 'No cost data'}</p></div>
+    </div>
   </a>`;
 }
 
@@ -310,9 +353,10 @@ function update() {
   results = compute();
   shown = 100;
   $('count').textContent = results.length.toLocaleString('en-US') + ' listings';
-  const me = median(results.map(x => x.e)), mv = median(results.map(x => x.v));
-  $('medCost').textContent = me === null ? '' : 'Median real cost ' + won(me) + ' a month';
-  $('medVal').textContent = mv === null ? '' : 'Median value ₩' + (mv * 10).toFixed(1) + 'k per m²';
+  const me = median(results.map(x => x.e));
+  medV = median(results.map(x => x.v));
+  $('medCost').textContent = me === null ? '' : 'Median cost ' + won(me) + ' a month';
+  $('medVal').textContent = medV === null ? '' : 'Median value ₩' + (medV * 10).toFixed(1) + 'k /m²';
   paint();
   saveState();
 }
@@ -325,9 +369,10 @@ $('reset').addEventListener('click', () => { reset(); update(); });
 $('more').addEventListener('click', () => { shown += 100; paint(); });
 $('toggle').addEventListener('click', () => { const closed = $('rail').classList.toggle('closed'); $('toggle').textContent = closed ? 'Show filters' : 'Hide filters'; });
 
-$('sub').textContent = `${ROWS.length.toLocaleString('en-US')} apartment and officetel rentals in Seoul and nearby cities, from Dabang on ${DATA.date}. Click a listing to open it.`;
+$('sub').textContent = `${ROWS.length.toLocaleString('en-US')} apartment and officetel rentals in Seoul and nearby cities · Dabang, ${DATA.date}`;
 $('foot').textContent = `Apartment sizes are estimates. Dabang lists apartments by supply area, which includes shared hallways, and officetels by actual usable area. In a sample of ${DATA.ratioN} apartments, usable area had a median of ${Math.round(DATA.ratio * 100)}% of the listed figure, so apartment sizes are scaled by that setting. Single rooms are detected from listing titles only, so some will slip through: if a price looks too good for the size, read the listing. Listings are a snapshot and may already be gone.`;
 reset();
 loadState();
 update();
 </script>
+</html>
