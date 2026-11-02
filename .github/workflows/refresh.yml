@@ -1,0 +1,55 @@
+name: Refresh listings
+on:
+  schedule:
+    - cron: '23 1,9,17 * * *'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Scrape time limit in minutes
+        default: '300'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+env:
+  # Raw data stays in the private Actions cache because its free text still holds agent contact details; only the scrubbed site is published.
+  STATE: |
+    *.jsonl
+    dabang_rentals.json
+    zigbang_ids.json
+    zigbang_danjis.json
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.STATE }}
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+      - name: Scrape
+        run: timeout "$(( ${{ inputs.minutes || 300 }} * 60 ))" bash refresh.sh || true
+      - name: Drop torn lines and removed listings
+        run: |
+          node compact_jsonl.js dabang_details.jsonl dabang_rentals.json
+          node compact_jsonl.js zigbang_rentals.jsonl zigbang_ids.json
+      - uses: actions/cache/save@v6
+        if: always()
+        with:
+          path: ${{ env.STATE }}
+          key: state-${{ github.run_id }}
+      - name: Build
+        run: node dabang_build_finder.js --selftest && node dabang_build_finder.js
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v5

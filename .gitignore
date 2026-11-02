@@ -1,0 +1,7 @@
+_site/
+*.jsonl
+*.log
+dabang_rentals.json
+next.json
+zigbang_ids.json
+zigbang_danjis.json

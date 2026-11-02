@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Seoul Rental Value Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a property-search tool. Filters in a fixed sidebar, ranked listing cards with the photo first and the value verdict at the right edge. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --ink: #161b26; --muted: #5c6575; --line: #e0e4ea; --fill: #e8ebf0;
+  --accent: #2447c8; --accent-soft: #e8edfc;
+  --good: #12764f; --good-soft: #e0f3ea; --warn: #8f5a00; --warn-soft: #fbf0dc; --star: #b97a00;
+  --sans: "Schibsted Grotesk", "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1219; --surface: #171b24; --ink: #e9ecf2; --muted: #98a1b2; --line: #2a303c; --fill: #232834;
+  --accent: #8aa4ff; --accent-soft: #1e2742;
+  --good: #5fd3a4; --good-soft: #12302a; --warn: #e9b766; --warn-soft: #33280f; --star: #f2c14e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1219; --surface: #171b24; --ink: #e9ecf2; --muted: #98a1b2; --line: #2a303c; --fill: #232834;
+  --accent: #8aa4ff; --accent-soft: #1e2742;
+  --good: #5fd3a4; --good-soft: #12302a; --warn: #e9b766; --warn-soft: #33280f; --star: #f2c14e; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--sans); }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 28px 56px; display: grid; gap: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 24px; }
+h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; font-size: 0.87rem; }
+
+.how { background: var(--accent-soft); border-radius: 8px; padding: 12px 16px; font-size: 0.9rem; }
+.how summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; list-style: none; }
+.how summary::-webkit-details-marker { display: none; }
+.how .eq { font-weight: 500; min-width: 0; }
+.how .eq b { font-weight: 700; color: var(--accent); }
+.how .more-link { color: var(--accent); font-size: 0.82rem; font-weight: 500; white-space: nowrap; margin-left: auto; }
+.how[open] .more-link::after { content: " (hide)"; }
+.how p { margin: 10px 0 0; max-width: 78ch; color: var(--muted); font-size: 0.87rem; }
+
+.layout { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 20px; align-items: start; }
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: grid; }
+.rail-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; font-weight: 600; }
+.group { display: grid; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--line); }
+.group h2 { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0; font-weight: 600; }
+.stack { display: grid; gap: 12px; }
+.ctl { display: grid; gap: 4px; }
+.ctl .top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.87rem; }
+.ctl output { font-weight: 600; font-size: 0.84rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; height: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips label { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: 0.84rem; cursor: pointer; user-select: none; }
+.chips input { position: absolute; opacity: 0; width: 0; height: 0; }
+.chips label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.chips label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: flex; gap: 8px; font-size: 0.85rem; align-items: flex-start; cursor: pointer; color: var(--muted); }
+.check input { accent-color: var(--accent); margin: 3px 0 0; flex: none; }
+details.areas summary { cursor: pointer; font-size: 0.87rem; }
+details.areas h3 { font-size: 0.78rem; margin: 12px 0 6px; color: var(--muted); font-weight: 600; }
+input[type=search] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.87rem; }
+select { font: inherit; font-size: 0.87rem; padding: 6px 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+button { font: inherit; font-size: 0.87rem; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--accent); }
+.link { border: 0; padding: 0; background: none; color: var(--accent); font-size: 0.84rem; font-weight: 500; }
+.toggle { display: none; }
+
+.summary { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: baseline; margin-bottom: 12px; }
+.summary .big { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.01em; }
+.summary span { color: var(--muted); font-size: 0.85rem; }
+.sortbox { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.sortbox label { font-size: 0.85rem; color: var(--muted); }
+
+#list { display: grid; gap: 10px; }
+.card { display: grid; grid-template-columns: 184px minmax(0, 1fr) 216px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; position: relative; transition: border-color 0.12s; }
+.card:hover { border-color: var(--accent); }
+.open { color: inherit; text-decoration: none; }
+.open::after { content: ""; position: absolute; inset: 0; border-radius: 8px; }
+.open:focus-visible { outline: 0; }
+.open:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fav { padding: 0 7px; font-size: 1rem; line-height: 1.5; border-radius: 5px; color: var(--muted); background: var(--surface); }
+.fav[aria-pressed="true"] { color: var(--star); border-color: var(--star); }
+.photo .fav { position: absolute; z-index: 2; top: 6px; right: 6px; }
+.photo { position: relative; min-height: 138px; background: var(--fill); color: var(--muted); font-size: 0.78rem; display: grid; place-items: center; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.rank { position: absolute; z-index: 1; top: 8px; left: 8px; min-width: 24px; padding: 1px 6px; border-radius: 5px; background: var(--surface); color: var(--ink); font-size: 0.76rem; font-weight: 600; text-align: center; }
+.body { padding: 13px 16px; min-width: 0; display: grid; gap: 3px; align-content: center; }
+.price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.price strong { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
+.price small { color: var(--muted); font-size: 0.78rem; }
+.place { font-size: 0.92rem; overflow-wrap: anywhere; }
+.place b { font-weight: 600; }
+.facts { display: flex; flex-wrap: wrap; gap: 0 12px; color: var(--muted); font-size: 0.84rem; }
+.facts .old { color: var(--warn); font-weight: 500; }
+.ttl { color: var(--muted); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.flags span { font-size: 0.72rem; font-weight: 500; padding: 0 6px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); }
+.verdict { padding: 13px 16px; border-left: 1px solid var(--line); display: grid; gap: 8px; align-content: center; }
+.stat label { display: block; font-size: 0.72rem; color: var(--muted); }
+.stat .n { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+.stat .n small { font-size: 0.76rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.stat .n.sec { font-size: 0.98rem; font-weight: 600; }
+.stat p { margin: 1px 0 0; font-size: 0.73rem; color: var(--muted); line-height: 1.35; }
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 1px 7px; border-radius: 4px; margin-top: 3px; background: var(--fill); color: var(--muted); }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+.more { display: block; margin: 16px auto 0; }
+.favbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.favbar .check { color: var(--ink); align-items: center; }
+.favbar .check input { margin: 0; }
+
+body:has(dialog[open]) { overflow: hidden; }
+dialog { width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
+dialog::backdrop { background: rgb(8 10 16 / 0.6); }
+.dbar { position: sticky; top: 0; z-index: 3; display: flex; gap: 8px; justify-content: flex-end; padding: 8px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.dbar .fav { font-size: 0.87rem; padding: 6px 12px; }
+.dbar .close { padding: 6px 12px; }
+.dbody { padding: 16px 20px 24px; display: grid; gap: 18px; min-width: 0; }
+.gallery-box { position: relative; margin: -16px -20px 0; }
+.gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; background: var(--fill); aspect-ratio: 16 / 9; max-height: 56vh; width: 100%; }
+.gallery img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: contain; scroll-snap-align: start; }
+.gallery-box > button { position: absolute; top: 50%; translate: 0 -50%; padding: 8px 12px; }
+.gallery-box .prev { left: 10px; }
+.gallery-box .next { right: 10px; }
+.nophoto { padding: 28px; text-align: center; color: var(--muted); background: var(--fill); margin: -16px -20px 0; }
+.dhead { display: grid; gap: 4px; }
+.dhead h2 { margin: 0; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+.dhead .place { font-size: 1rem; }
+.dhead p { margin: 0; color: var(--muted); font-size: 0.87rem; overflow-wrap: anywhere; }
+.dstats { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+.dsec { display: grid; gap: 8px; min-width: 0; }
+.dsec h3 { margin: 0; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.dfacts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 20px; margin: 0; }
+.dfacts dt { font-size: 0.74rem; color: var(--muted); }
+.dfacts dd { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+.memo { margin: 0; white-space: pre-line; font-size: 0.9rem; max-width: 72ch; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags span { font-size: 0.8rem; padding: 2px 8px; border-radius: 5px; background: var(--fill); }
+.map { position: relative; overflow: hidden; height: 340px; border-radius: 8px; background: var(--fill); }
+/* Kakao's search panel takes the left 405px of its page and the pin is centred in the rest, so the frame is oversized and the panel pushed out of view. */
+.map iframe { position: absolute; top: 0; left: -410px; width: calc(100% + 410px); height: 100%; border: 0; }
+.phone .map { height: 380px; }
+.phone .map iframe { left: 0; width: 100%; } /* Kakao serves phones a layout with no side panel */
+.dlinks { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.87rem; }
+.dlinks a { color: var(--accent); font-weight: 500; }
+
+.foot { color: var(--muted); font-size: 0.8rem; margin: 18px 0 0; max-width: 78ch; }
+
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; max-height: none; }
+  .rail.closed > :not(.toggle) { display: none; }
+  .toggle { display: block; margin: 12px 16px; }
+  .rail:not(.closed) .toggle { margin-bottom: 0; }
+  .rail.closed { border: 0; background: none; }
+  .rail.closed .toggle { margin: 0; }
+}
+@media (max-width: 720px) {
+  .wrap { padding-block: 18px 40px; }
+  .how .more-link { margin-left: 0; }
+  .sortbox { margin-left: 0; }
+  .card { grid-template-columns: 112px minmax(0, 1fr); }
+  .photo { min-height: 112px; }
+  .body { padding: 10px 12px; }
+  dialog { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; border: 0; border-radius: 0; }
+  .dbody { padding: 12px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+  .gallery-box, .nophoto { margin: -12px calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); }
+  .map { height: 280px; }
+  .verdict { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-content: start; border-left: 0; border-top: 1px solid var(--line); padding: 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Seoul Rental Value Finder</h1>
+    <p class="sub" id="sub"></p>
+  </header>
+
+  <details class="how">
+    <summary><span class="eq">Value = (rent + maintenance + deposit × <b id="fR"></b> ÷ 12) ÷ usable m² × (1 + <b id="fP"></b> × age ÷ 10). Lower is better.</span><span class="more-link">How this works</span></summary>
+    <p>You get a deposit back, so only the cost of having that money locked up counts: loan interest or lost savings. The default rate is what the listings themselves imply when jeonse and monthly offers exist in the same complex at the same size. Set it to your own rate under Formula settings.</p>
+    <p>Old buildings bring problems the rent doesn't show, so age makes them earn their place. At the default, a 30-year-old building counts as 1.9× as expensive per m² as a new one, and anything older is hidden. Both are preferences, not measurements, so set them to taste. Age is years since the building's official approval date (사용승인일).</p>
+  </details>
+
+  <div class="layout">
+    <aside class="rail closed" id="rail">
+      <button class="toggle" id="toggle" type="button">Show filters</button>
+      <div class="rail-head"><span>Filters</span><button class="link" type="button" id="reset">Reset all</button></div>
+      <div class="group">
+        <h2>Type</h2>
+        <div class="chips" id="types"></div>
+        <div class="chips" id="sources"></div>
+      </div>
+      <div class="group">
+        <h2>Budget</h2>
+        <div id="budget" class="stack"></div>
+      </div>
+      <div class="group">
+        <h2>Size</h2>
+        <div id="size" class="stack"></div>
+      </div>
+      <div class="group">
+        <h2>Building</h2>
+        <div id="building" class="stack"></div>
+      </div>
+      <div class="group">
+        <h2>Area</h2>
+        <details class="areas" id="areasBox"><summary id="areasSum">All districts</summary><div id="areas"></div></details>
+        <input type="search" id="q" placeholder="Search name, neighbourhood, station, title" aria-label="Search listings">
+        <div id="near" class="stack"></div>
+      </div>
+      <div class="group">
+        <h2>Formula settings</h2>
+        <div id="knobs" class="stack"></div>
+      </div>
+      <div class="group">
+        <h2>Include</h2>
+        <label class="check"><input type="checkbox" id="hideLow"> Hide low floors (저층, 1st and 2nd)</label>
+        <label class="check"><input type="checkbox" id="unknownFee"> Listings with no maintenance figure (estimated from the district median)</label>
+        <label class="check"><input type="checkbox" id="unknownAge"> Listings with unknown building age (no age penalty)</label>
+        <label class="check"><input type="checkbox" id="partial"> Single rooms in a shared or split unit (their size is misleading)</label>
+        <label class="check"><input type="checkbox" id="shortTerm"> Short-term rentals (단기)</label>
+        <label class="check"><input type="checkbox" id="lh"> LH public housing (has eligibility rules)</label>
+      </div>
+    </aside>
+
+    <main style="min-width:0">
+      <div class="summary" id="summary">
+        <div class="big" id="count"></div>
+        <span id="medCost"></span>
+        <span id="medVal"></span>
+        <div class="favbar">
+          <label class="check"><input type="checkbox" id="favOnly"> <span id="favCount"></span></label>
+          <button class="link" type="button" id="share" hidden>Copy favourites link</button>
+        </div>
+        <div class="sortbox"><label for="sort">Sort</label>
+          <select id="sort">
+            <option value="v">Best value</option>
+            <option value="e">Lowest monthly cost</option>
+            <option value="a">Largest usable size</option>
+            <option value="n">Newest building</option>
+            <option value="d">Lowest deposit</option>
+          </select>
+        </div>
+      </div>
+      <div id="list"></div>
+      <button class="more" id="more" type="button" hidden>Show 100 more</button>
+      <p class="foot" id="foot"></p>
+    </main>
+  </div>
+</div>
+
+<dialog id="detail" aria-labelledby="dTitle">
+  <div class="dbar" id="dBar"></div>
+  <div class="dbody" id="dBody"></div>
+</dialog>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const $ = id => document.getElementById(id);
+
+// Money is stored in 만원 (₩10,000), as both sites give it.
+const won = v => v >= 100 ? '₩' + (+(v / 100).toFixed(2)) + 'M' : '₩' + Math.round(v * 10) + 'k';
+const seq = (a, b, s) => { const o = []; for (let i = a; i <= b; i += s) o.push(i); return o; };
+const ANY = Infinity;
+const anyOr = f => v => v === ANY ? 'Any' : f(v);
+
+const SLIDERS = {
+  deposit: { box: 'budget', label: 'Max deposit', fmt: anyOr(won), def: ANY, steps: [0, 100, 300, 500, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 70000, 100000, ANY] },
+  rent: { box: 'budget', label: 'Max monthly rent', fmt: anyOr(won), def: ANY, steps: [0, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 400, 500, 700, 1000, ANY] },
+  fee: { box: 'budget', label: 'Max maintenance', fmt: anyOr(won), def: ANY, steps: [0, 5, 10, 15, 20, 25, 30, 40, 50, 70, 100, ANY] },
+  total: { box: 'budget', label: 'Max real monthly cost', fmt: anyOr(won), def: ANY, steps: [30, 50, 70, 80, 90, 100, 120, 140, 160, 180, 200, 250, 300, 400, 500, 700, 1000, ANY] },
+  beds: { box: 'size', label: 'Min rooms', fmt: v => v ? v + '+' : 'Any', def: 0, steps: [0, 1, 2, 3, 4] },
+  minA: { box: 'size', label: 'Min usable size', fmt: v => v + ' m² · ' + Math.round(v / 3.3058) + '평', def: 0, steps: seq(0, 150, 5) },
+  maxA: { box: 'size', label: 'Max usable size', fmt: anyOr(v => v + ' m² · ' + Math.round(v / 3.3058) + '평'), def: ANY, steps: [...seq(10, 150, 5), 175, 200, ANY] },
+  maxAge: { box: 'building', label: 'Max building age', fmt: anyOr(v => v + ' years'), def: 30, steps: [...seq(0, 40, 5), ANY] },
+  penalty: { box: 'building', label: 'Old-building penalty', fmt: v => v ? '+' + v + '% per 10 yrs' : 'Off', def: DATA.penalty, steps: seq(0, 100, 5) },
+  rate: { box: 'knobs', label: 'Cost of locked-up money', fmt: v => v.toFixed(1) + '% a year', def: DATA.rate, steps: [...new Set([...seq(0, 100, 5).map(x => x / 10), DATA.rate])].sort((a, b) => a - b) },
+  sub: { box: 'near', label: 'Max distance to subway', fmt: anyOr(v => v >= 1000 ? v / 1000 + ' km' : v + ' m'), def: ANY, steps: [200, 300, 400, 500, 700, 1000, 1500, 2000, 3000, ANY] },
+};
+for (const [k, s] of Object.entries(SLIDERS)) {
+  const el = document.createElement('div');
+  el.className = 'ctl';
+  el.innerHTML = `<div class="top"><label for="s_${k}">${s.label}</label><output id="o_${k}"></output></div><input type="range" id="s_${k}" min="0" max="${s.steps.length - 1}" step="1">`;
+  $(s.box).append(el);
+}
+const val = k => SLIDERS[k].steps[+$('s_' + k).value];
+const setVal = (k, v) => { const s = SLIDERS[k]; let i = s.steps.indexOf(v); if (i < 0) i = s.steps.indexOf(s.def); $('s_' + k).value = i; };
+
+$('types').innerHTML = [['apt', 'Apartments'], ['off', 'Officetels'], ['jeonse', 'Jeonse 전세'], ['monthly', 'Monthly 월세']]
+  .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
+$('sources').innerHTML = [['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
+  .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
+
+// Row: [key (d: Dabang, z: Zigbang), category 0 apt/1 officetel, deal 0 jeonse/1 monthly, deposit, rent, fee, usable m², complex, dong, region index, floor, title, short, lh, price text, partial, building age|null, photo|null, fee estimated, size estimated, rooms|null, metres to nearest station, station index, on both sites]
+document.documentElement.classList.toggle('phone', /Mobi|Android|iPhone/.test(navigator.userAgent));
+const ROWS = DATA.rows.map(r => ({ key: r[0], cat: r[1], deal: r[2], dep: r[3], rent: r[4], fee: r[5], m2: r[6], complex: r[7], dong: r[8], reg: r[9], floor: r[10], title: r[11], short: r[12], lh: r[13], price: r[14], partial: r[15], age: r[16], photo: r[17], feeEst: r[18], sizeEst: r[19], beds: r[20], subM: r[21], sub: r[22], also: r[23],
+  hay: (r[7] + ' ' + r[8] + ' ' + r[11] + ' ' + DATA.regions[r[9]].label + ' ' + DATA.stations[r[22]]).toLowerCase() }));
+const BY_KEY = new Map(ROWS.map(r => [r.key, r]));
+
+const groups = {};
+DATA.regions.forEach((g, i) => { (groups[g.province] ??= []).push([g, i]); });
+$('areas').innerHTML = Object.entries(groups).map(([p, list]) => `<h3>${p}</h3><div class="chips">${list.sort((a, b) => a[0].label.localeCompare(b[0].label)).map(([g, i]) => `<label><input type="checkbox" data-reg="${i}"> ${g.label}</label>`).join('')}</div>`).join('');
+const areaBoxes = [...document.querySelectorAll('[data-reg]')];
+
+const CHECKS = ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang', 'favOnly'];
+const CHECK_DEFAULTS = { t_apt: true, t_off: true, t_jeonse: true, t_monthly: true, t_dabang: true, t_zigbang: true, unknownFee: true };
+
+function reset() {
+  for (const [k, s] of Object.entries(SLIDERS)) setVal(k, s.def);
+  for (const c of CHECKS) $(c).checked = !!CHECK_DEFAULTS[c];
+  areaBoxes.forEach(b => b.checked = false);
+  $('q').value = ''; $('sort').value = 'v';
+}
+
+const STORE = 'finder-filters-v2';
+function saveState() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value }));
+  } catch {}
+}
+function loadState() {
+  try {
+    const st = JSON.parse(localStorage.getItem(STORE));
+    if (!st) return;
+    for (const [k, v] of Object.entries(st.s)) if (SLIDERS[k]) setVal(k, v === 'any' ? ANY : v);
+    for (const c of CHECKS) if (c in st.c) $(c).checked = st.c[c];
+    areaBoxes.forEach(b => b.checked = st.a.includes(DATA.regions[+b.dataset.reg].key));
+    $('q').value = st.q; $('sort').value = st.o;
+  } catch {}
+}
+
+const median = a => { if (!a.length) return null; const s = Float64Array.from(a).sort(); return s[s.length >> 1]; };
+const isLow = f => f === '저층' || (/^\d+층$/.test(f) && parseInt(f) <= 2);
+let shown = 100, results = [], medV = null;
+const favs = new Set((() => { try { return JSON.parse(localStorage.getItem('finder-favourites-v1')) ?? []; } catch { return []; } })());
+
+function score(r, rate = val('rate'), penalty = val('penalty')) {
+  const e = r.rent + r.fee + r.dep * rate / 100 / 12;
+  return { r, a: r.m2, e, v: e / r.m2 * (1 + penalty / 100 * (r.age ?? 0) / 10) };
+}
+
+function compute() {
+  const rate = val('rate'), penalty = val('penalty'), maxAge = val('maxAge');
+  const f = { dep: val('deposit'), rent: val('rent'), fee: val('fee'), total: val('total'), minA: val('minA'), maxA: val('maxA'), beds: val('beds'), sub: val('sub') };
+  const c = Object.fromEntries(CHECKS.map(k => [k, $(k).checked]));
+  const regs = new Set(areaBoxes.filter(b => b.checked).map(b => +b.dataset.reg));
+  const q = $('q').value.trim().toLowerCase();
+  const out = [];
+  for (const r of ROWS) {
+    // Favourites stay visible whatever the filters say.
+    if (c.favOnly) { if (favs.has(r.key)) out.push(score(r, rate, penalty)); continue; }
+    if (!(r.cat ? c.t_off : c.t_apt) || !(r.deal ? c.t_monthly : c.t_jeonse)) continue;
+    if (!(r.also ? c.t_dabang || c.t_zigbang : r.key[0] === 'd' ? c.t_dabang : c.t_zigbang)) continue;
+    if (r.partial && !c.partial) continue;
+    if (r.short && !c.shortTerm) continue;
+    if (r.lh && !c.lh) continue;
+    if (r.feeEst && !c.unknownFee) continue;
+    if (r.age === null ? !c.unknownAge : r.age > maxAge) continue;
+    if (c.hideLow && isLow(r.floor)) continue;
+    if (regs.size && !regs.has(r.reg)) continue;
+    if (r.dep > f.dep || r.rent > f.rent || r.fee > f.fee) continue;
+    if (r.m2 < f.minA || r.m2 > f.maxA) continue;
+    if (r.subM > f.sub) continue;
+    if (r.beds !== null && r.beds < f.beds) continue; // rooms unknown (many Zigbang apartments): kept
+    const x = score(r, rate, penalty);
+    if (x.e > f.total) continue;
+    if (q && !r.hay.includes(q)) continue;
+    out.push(x);
+  }
+  const sort = $('sort').value;
+  const by = { v: x => x.v, e: x => x.e, a: x => -x.a, d: x => x.r.dep, n: x => x.r.age ?? 99 }[sort];
+  out.sort((x, y) => by(x) - by(y) || x.v - y.v);
+  return out;
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+const floorText = f => f === '저층' ? 'Low floor' : f === '중층' ? 'Mid floor' : f === '고층' ? 'High floor' : /^\d+층$/.test(f) ? 'Floor ' + parseInt(f) : f === '-' ? '' : f;
+const ageText = a => a === null ? '' : a === 0 ? 'New build' : a === 1 ? '1 year old' : a + ' years old';
+function medianPill(v) {
+  if (medV === null) return '';
+  const pct = Math.round((v / medV - 1) * 100);
+  return pct <= -10 ? `<span class="pill good">${-pct}% below median</span>` : pct >= 10 ? `<span class="pill warn">${pct}% above median</span>` : '<span class="pill">Near median</span>';
+}
+const sizeText = r => `${r.sizeEst ? '~' : ''}${r.m2.toFixed(0)} m² usable · ${Math.round(r.m2 / 3.3058)}평`;
+const sourceText = r => r.also ? 'Dabang + Zigbang' : r.key[0] === 'd' ? 'Dabang' : 'Zigbang';
+const priceHead = r => { const dep = r.dep ? won(r.dep) + ' deposit' : 'No deposit'; return r.deal ? dep + ' · ' + won(r.rent) + '/mo' : dep; };
+const costParts = ({ r }) => [r.rent ? won(r.rent) + ' rent' : '', r.fee ? (r.feeEst ? '~' : '') + won(r.fee) + ' fee' : '', r.dep ? won(r.dep * val('rate') / 100 / 12) + ' deposit cost' : ''].filter(Boolean).join(' + ');
+const statsHtml = x => `<div class="stat"><label>Value</label><div class="n">₩${(x.v * 10).toFixed(1)}k<small> /m²</small></div>${medianPill(x.v)}</div>
+      <div class="stat"><label>Real monthly cost</label><div class="n sec">${won(x.e)}</div><p>${costParts(x) || 'No cost data'}</p></div>`;
+const favBtn = (key, text = '') => { const on = favs.has(key); return `<button class="fav" type="button" data-fav="${esc(key)}" aria-pressed="${on}" aria-label="Favourite">${on ? '★' : '☆'}${text}</button>`; };
+const photoUrl = r => r.key[0] === 'd' ? 'https://d1774jszgerdmk.cloudfront.net/512/' + r.photo : 'https://ic.zigbang.com/' + r.photo + '?w=400';
+
+function rowHtml(x, i) {
+  const r = x.r;
+  const facts = [r.cat ? 'Officetel' : 'Apartment', sizeText(r), r.beds && r.beds + (r.beds > 1 ? ' rooms' : ' room'), floorText(r.floor), `${DATA.stations[r.sub]} ${r.subM >= 1000 ? (r.subM / 1000).toFixed(1) + ' km' : r.subM + ' m'}`].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')
+    + (r.age === null ? '' : `<span${r.age >= 25 ? ' class="old"' : ''}>${ageText(r.age)}</span>`);
+  const flags = [r.age === null && 'Age unknown', r.feeEst && 'Fee estimated', r.sizeEst && 'Size estimated', r.partial && 'Single room?', r.short && 'Short-term', r.lh && 'LH'].filter(Boolean).map(t => `<span>${t}</span>`).join('');
+  return `<article class="card">
+    <div class="photo"><span class="rank">${i + 1}</span>${favBtn(r.key)}${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
+    <div class="body">
+      <div class="price"><strong>${priceHead(r)}</strong><small>${r.deal ? '월세' : '전세'} ${esc(r.price)} · ${sourceText(r)}</small></div>
+      <div class="place"><a class="open" href="#${esc(r.key)}"><b>${esc(r.complex)}</b></a> · ${esc(r.dong)}, ${esc(DATA.regions[r.reg].label)}</div>
+      <div class="facts">${facts}</div>
+      <div class="ttl">${esc(r.title)}</div>
+      ${flags ? `<div class="flags">${flags}</div>` : ''}
+    </div>
+    <div class="verdict">${statsHtml(x)}</div>
+  </article>`;
+}
+
+// Detail view: a real URL (#d:id), so Back closes it and a listing can be linked.
+const dlg = $('detail');
+const shardOf = key => { let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) & 255; return h.toString(16).padStart(2, '0'); };
+const shards = new Map();
+const loadShard = s => { if (!shards.has(s)) shards.set(s, fetch(`data/d/${s}.json`).then(res => { if (!res.ok) throw new Error(res.status); return res.json(); }).catch(e => { shards.delete(s); throw e; })); return shards.get(s); };
+const isListing = () => /^#[dz]:/.test(location.hash);
+let current = null, navigated = false;
+
+function detailHtml(r, d) {
+  const x = score(r);
+  const head = `<div class="dhead"><h2 id="dTitle">${priceHead(r)}</h2>
+      <div class="place"><b>${esc(r.complex)}</b> · ${esc(r.dong)}, ${esc(DATA.regions[r.reg].label)}</div>
+      ${d?.addr ? `<p>${esc(d.addr)}</p>` : ''}<p>${esc(r.title)}</p></div>
+    <div class="dstats">${statsHtml(x)}</div>`;
+  if (!d) return head + '<p class="foot" id="dLoading">Loading details…</p>';
+  const place = encodeURIComponent(r.complex.replace(/,/g, ' '));
+  const gallery = d.imgs.length ? `<div class="gallery-box"><div class="gallery" tabindex="0" aria-label="${d.imgs.length} photos">${d.imgs.map(u => `<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`).join('')}</div>${d.imgs.length > 1 ? '<button class="prev" type="button" data-slide="-1" aria-label="Previous photo">←</button><button class="next" type="button" data-slide="1" aria-label="Next photo">→</button>' : ''}</div>` : '<div class="nophoto">No photos</div>';
+  const near = [['Nearest subway: ' + d.station[0], d.station[1] + ' straight line'], ...d.near];
+  return gallery + head + `
+    <section class="dsec"><h3>Location</h3>
+      <div class="map"><iframe src="https://map.kakao.com/link/map/${place},${d.lat},${d.lng}" title="Map of ${esc(r.complex)}" referrerpolicy="no-referrer"></iframe></div>
+      <div class="dlinks"><a href="https://map.kakao.com/link/map/${place},${d.lat},${d.lng}" target="_blank" rel="noopener">Open in Kakao Map</a><a href="https://map.naver.com/p/search/${encodeURIComponent(d.addr)}" target="_blank" rel="noopener">Open in Naver Map</a></div>
+    </section>
+    <section class="dsec"><h3>Details</h3><dl class="dfacts">${d.facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>
+    ${d.memo ? `<section class="dsec"><h3>Description (from the listing)</h3><p class="memo">${esc(d.memo)}</p></section>` : ''}
+    ${d.opts.length ? `<section class="dsec"><h3>Included</h3><div class="tags">${d.opts.map(t => `<span>${esc(t)}</span>`).join('')}</div></section>` : ''}
+    ${d.tags.length ? `<section class="dsec"><h3>Tags</h3><div class="tags">${d.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div></section>` : ''}
+    <section class="dsec"><h3>Nearby</h3><dl class="dfacts">${near.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>
+    <section class="dsec"><h3>Contact the agent</h3><div class="dlinks">${[d.link, d.also].filter(Boolean).map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">See this listing on ${esc(n)}</a>`).join('')}</div></section>`;
+}
+
+async function openDetail(key) {
+  const r = BY_KEY.get(key);
+  if (!r) return location.hash = '';
+  current = key;
+  $('dBar').innerHTML = favBtn(key, ' Favourite') + '<button class="close" type="button" id="dClose">Close</button>';
+  $('dBody').innerHTML = detailHtml(r);
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0;
+  try {
+    const d = (await loadShard(shardOf(key)))[key];
+    if (current === key && dlg.open) { $('dBody').innerHTML = detailHtml(r, d); dlg.scrollTop = 0; }
+  } catch {
+    if (current === key && dlg.open) $('dLoading').textContent = "Couldn't load the details. Check your connection and open the listing again.";
+  }
+}
+
+function route() {
+  if (isListing()) openDetail(decodeURIComponent(location.hash.slice(1)));
+  else if (dlg.open) dlg.close();
+}
+addEventListener('hashchange', () => { navigated = true; route(); });
+dlg.addEventListener('close', () => {
+  current = null;
+  $('dBody').innerHTML = '';
+  if (isListing()) navigated ? history.back() : history.replaceState(null, '', location.pathname + location.search);
+});
+dlg.addEventListener('click', e => {
+  if (e.target === dlg || e.target.id === 'dClose') dlg.close();
+  const slide = e.target.dataset?.slide;
+  if (slide) { const g = dlg.querySelector('.gallery'); g.scrollBy({ left: slide * g.clientWidth, behavior: 'smooth' }); }
+});
+
+// Favourites live in this browser; the share link carries them to another device or person.
+const FAV_STORE = 'finder-favourites-v1';
+function saveFavs() { try { localStorage.setItem(FAV_STORE, JSON.stringify([...favs])); } catch {} }
+function paintFavs() {
+  $('favCount').textContent = `★ Favourites only (${favs.size})`;
+  $('share').hidden = !favs.size;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest?.('[data-fav]');
+  if (!b) return;
+  const key = b.dataset.fav, on = !favs.has(key);
+  on ? favs.add(key) : favs.delete(key);
+  saveFavs();
+  paintFavs();
+  for (const el of document.querySelectorAll('[data-fav]')) if (el.dataset.fav === key) { el.setAttribute('aria-pressed', on); el.firstChild.textContent = (on ? '★' : '☆') + el.firstChild.textContent.slice(1); }
+  if ($('favOnly').checked) update();
+});
+$('share').addEventListener('click', async () => {
+  const url = location.origin + location.pathname + '#favs=' + [...favs].join(',');
+  try { await navigator.clipboard.writeText(url); $('share').textContent = 'Copied'; setTimeout(() => $('share').textContent = 'Copy favourites link', 2000); }
+  catch { prompt('Copy this link', url); }
+});
+
+function paint() {
+  const list = results.slice(0, shown);
+  $('list').innerHTML = list.length ? list.map(rowHtml).join('') : `<div class="empty">${$('favOnly').checked ? 'No favourites yet. Tap the star on a listing to keep it here.' : 'No listings match. Raise a budget limit or clear the district filter.'}</div>`;
+  $('more').hidden = results.length <= shown;
+}
+
+function update() {
+  for (const k of Object.keys(SLIDERS)) $('o_' + k).textContent = SLIDERS[k].fmt(val(k));
+  $('fR').textContent = val('rate').toFixed(1) + '%';
+  $('fP').textContent = val('penalty') + '%';
+  const n = areaBoxes.filter(b => b.checked).length;
+  $('areasSum').textContent = n ? n + ' district' + (n > 1 ? 's' : '') + ' selected' : 'All districts';
+  results = compute();
+  shown = 100;
+  $('count').textContent = results.length.toLocaleString('en-US') + (results.length === 1 ? ' listing' : ' listings');
+  const me = median(results.map(x => x.e));
+  medV = median(results.map(x => x.v));
+  $('medCost').textContent = me === null ? '' : 'Median cost ' + won(me) + ' a month';
+  $('medVal').textContent = medV === null ? '' : 'Median value ₩' + (medV * 10).toFixed(1) + 'k /m²';
+  paint();
+  saveState();
+}
+
+let pending = false;
+const schedule = () => { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; update(); }); };
+document.querySelector('.rail').addEventListener('input', schedule);
+$('summary').addEventListener('change', schedule);
+$('reset').addEventListener('click', () => { reset(); update(); });
+$('more').addEventListener('click', () => { shown += 100; paint(); });
+$('toggle').addEventListener('click', () => { const closed = $('rail').classList.toggle('closed'); $('toggle').textContent = closed ? 'Show filters' : 'Hide filters'; });
+
+$('sub').textContent = `${ROWS.length.toLocaleString('en-US')} apartment and officetel rentals in Seoul and nearby cities · Dabang and Zigbang, ${DATA.date}`;
+$('foot').textContent = `Usable size is the exclusive area (전용면적) from the listing, and age comes from the building's approval date. Zigbang publishes no maintenance figure for apartments, so those fees and any others missing are estimated from the median per m² of the same type in the same district, and flagged. Subway distances are straight lines to the nearest station, not walking routes. Single rooms are detected from listing titles only, so some will slip through: if a price looks too good for the size, read the listing. Agent details are not shown here, so use the link in a listing to contact them. Listings are a snapshot and may already be gone.`;
+reset();
+loadState();
+const shared = location.hash.match(/^#favs=(.+)/);
+if (shared) {
+  for (const k of decodeURIComponent(shared[1]).split(',')) if (BY_KEY.has(k)) favs.add(k);
+  saveFavs();
+  $('favOnly').checked = true;
+  history.replaceState(null, '', location.pathname + location.search);
+}
+paintFavs();
+update();
+route();
+</script>
+</html>
