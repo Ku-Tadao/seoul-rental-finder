@@ -39,7 +39,14 @@ h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
 
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sort { display: flex; align-items: center; gap: 2px; min-width: 0; }
-.sort select { min-width: 0; max-width: 100%; height: 44px; padding: 0 2px; border: 0; background: none; font-size: 14px; font-weight: 600; text-overflow: ellipsis; }
+.sortbtn { display: flex; align-items: center; gap: 4px; min-width: 0; height: 44px; padding: 0 2px; border: 0; background: none; font-size: 14px; font-weight: 600; }
+.sortbtn span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sortbtn svg { flex: none; color: var(--muted); }
+#sortMenu { position: fixed; inset: auto; margin: 0; width: 240px; max-width: calc(100vw - 32px); padding: 6px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: 0 12px 32px rgb(0 0 0 / .16); }
+#sortMenu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; border-radius: 9px; background: none; font-size: 14px; text-align: left; }
+#sortMenu button:hover, #sortMenu button:focus-visible { background: var(--soft); }
+#sortMenu button[aria-selected="true"] { font-weight: 600; }
+#sortMenu svg { flex: none; }
 .info { flex: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 44px; padding: 0; border: 0; background: none; }
 .seg { flex: none; display: flex; padding: 3px; border-radius: 12px; background: var(--chip); }
 .seg button { height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: none; font-size: 14px; font-weight: 500; }
@@ -211,7 +218,7 @@ body:has(dialog[open]) { overflow: hidden; }
   .ahead button { height: 36px; }
   main { flex: 1 1 0; }
   #list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
-  .sort select { height: 32px; font-size: 15px; }
+  .sortbtn { height: 32px; font-size: 15px; }
   .info { height: 32px; }
   input[type=search] { height: 40px; font-size: 14px; }
   [data-view="saved"] aside, [data-view="saved"] .sort, [data-view="saved"] .count { display: none; }
@@ -290,7 +297,8 @@ body:has(dialog[open]) { overflow: hidden; }
     </div>
     <div class="bar">
       <div class="sort">
-        <select id="sort" aria-label="Sort listings"></select>
+        <select id="sort" hidden></select>
+        <button class="sortbtn" id="sortBtn" type="button" popovertarget="sortMenu" aria-haspopup="listbox" aria-label="Sort listings"><span id="sortText"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
         <button class="info" type="button" aria-label="How the ranking works" data-help="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing. Real monthly cost is rent, maintenance and what the locked-up deposit costs you each month." title="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing.">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
         </button>
@@ -327,6 +335,7 @@ body:has(dialog[open]) { overflow: hidden; }
 </dialog>
 
 <div id="tip" popover="auto" role="status"></div>
+<div id="sortMenu" popover="auto" role="listbox" aria-label="Sort listings"></div>
 
 <script id="data" type="application/json">__DATA__</script>
 <script>
@@ -901,6 +910,32 @@ function paintSort() {
   $('sort').value = cur;
   if (!$('sort').value) $('sort').value = 'v';
 }
+// The hidden select keeps the sort value; this menu is only how it looks, since a native list can't be styled.
+const sortMenu = $('sortMenu');
+sortMenu.addEventListener('beforetoggle', e => {
+  if (e.newState !== 'open') return;
+  const opts = [...$('sort').options], a = $('sortBtn').getBoundingClientRect(), h = opts.length * 44 + 14;
+  sortMenu.innerHTML = opts.map(o => `<button type="button" role="option" aria-selected="${o.selected}" data-v="${o.value}">${esc(o.textContent)}${o.selected ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : ''}</button>`).join('');
+  sortMenu.style.left = Math.max(16, Math.min(a.left, innerWidth - 256)) + 'px';
+  sortMenu.style.top = (a.bottom + h + 6 > innerHeight ? Math.max(8, a.top - h - 6) : a.bottom + 6) + 'px';
+});
+sortMenu.addEventListener('toggle', e => { if (e.newState === 'open') sortMenu.querySelector('[aria-selected="true"]')?.focus(); });
+sortMenu.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  $('sort').value = b.dataset.v;
+  sortMenu.hidePopover();
+  $('sortBtn').focus();
+  schedule();
+});
+sortMenu.addEventListener('keydown', e => {
+  const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+  if (!step) return;
+  e.preventDefault();
+  const all = [...sortMenu.children];
+  all[(all.indexOf(document.activeElement) + step + all.length) % all.length].focus();
+});
+addEventListener('scroll', () => { if (sortMenu.matches(':popover-open')) sortMenu.hidePopover(); }, { passive: true });
 $('placeQ').addEventListener('input', () => {
   const q = $('placeQ').value.trim().toLowerCase();
   if (!q) { $('placeHits').innerHTML = ''; return; }
@@ -964,6 +999,7 @@ function update() {
   results = compute();
   medV = median(results.map(x => x.v));
   shown = 0;
+  $('sortText').textContent = $('sort').selectedOptions[0]?.textContent ?? '';
   paintCount();
   paintChips();
   mapStale = true;
