@@ -236,7 +236,7 @@ function main() {
   assert.ok(merged.length > 2000, `only ${merged.length} listings, not publishing`); // a blocked run must not wipe the site
   for (const r of merged) {
     if (r.region) { r.reg = regionOf(r.region[0], r.region[1]); continue; }
-    const parts = (regionNames[r.gid] || '').split(' ');
+    const parts = (regionNames[r.gid] || r.detail.jibun || '').split(' ');
     r.reg = regionOf(parts[0] || '?', parts.length > 2 ? parts[1] : '?');
   }
   const feeUnknown = merged.filter(r => r.fee === null).length;

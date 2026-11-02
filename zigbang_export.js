@@ -7,7 +7,7 @@ const assert = require('assert');
 
 const HEADERS = { accept: 'application/json', referer: 'https://www.zigbang.com/', zigbangostype: 'web', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36' };
 const API = 'https://apis.zigbang.com';
-const BBOX = { s: 37.25, w: 126.6, n: 37.8, e: 127.4 }; // bounds of the Dabang export
+const BBOX = { s: 37.12, w: 126.6, n: 37.8, e: 127.4 }; // bounds of the Dabang export
 const IDS = 'zigbang_ids.json', DANJIS = 'zigbang_danjis.json', OUT ='zigbang_rentals.jsonl', WORKERS = 2, DELAY_MS = 250;
 const MAX_ID_AGE_MS = 20 * 3600e3; // the id list is rebuilt once a day
 const sleep = ms => new Promise(r => setTimeout(r, ms));
