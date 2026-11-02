@@ -27,6 +27,8 @@ function money(s) {
 // ponytail: this loose rule only reads titles; descriptions get just the unambiguous phrase, and a one-room apartment of 70 m² or more is almost always a split unit
 const PARTIAL = /방\s*(1|한)\s*(개|칸)(?!\s*(확장|더|추가))|분리형\s*원룸|세대\s*(별도\s*)?분리|주인\s*세대|주인과\s*함께|부분\s*임대|쉐어|셰어|룸메|하숙/;
 const isPartial = r => PARTIAL.test(r.title) || /세대\s*분리형/.test(r.detail?.memo ?? '') || (!r.cat && r.beds === 1 && r.m2 >= 70);
+// A jeonse under 100만원 is a typo: one Zigbang listing gave "11" for 11억. The next lowest real one is 2000만원 and up.
+const mistyped = r => !r.monthly && r.deposit < 100;
 
 function parseListing(l) {
   const [deposit, rent = '0'] = l.priceTitle.split('/');
@@ -124,6 +126,7 @@ function selftest() {
   assert.ok(isPartial({ title: '깨끗함', cat: 0, beds: 3, m2: 84, detail: { memo: '세대분리형 원룸 (26㎡)' } }));
   assert.ok(isPartial({ title: '깨끗함', cat: 0, beds: 1, m2: 84.99 }));
   assert.ok(!isPartial({ title: '깨끗함', cat: 1, beds: 1, m2: 84.99, detail: { memo: '카셰어링 가능' } }));
+  assert.deepStrictEqual([mistyped({ monthly: false, deposit: 11 }), mistyped({ monthly: false, deposit: 2000 }), mistyped({ monthly: true, deposit: 0 })], [true, false, false]);
   console.log('selftest ok');
 }
 
@@ -229,7 +232,7 @@ function main() {
   if (fs.existsSync('zigbang_danjis.json')) for (const d of JSON.parse(fs.readFileSync('zigbang_danjis.json', 'utf8'))) for (const id of d.items) danjiOf.set(id, d);
   const dabang = readJsonl('dabang_details.jsonl').filter(d => d.room && d.room.selling_type !== 2 && lists.has(d.id)).map(d => { const r = lists.get(d.id); return fromDabang(d, r.list, r.category); });
   const zigbang = readJsonl('zigbang_rentals.jsonl').filter(z => z.item && ['전세', '월세'].includes(z.item.salesType) && z.item.location && z.item.area?.전용면적M2 > 0).map(z => fromZigbang(z, danjiOf.get(z.id)));
-  const merged = dedupe([...dabang, ...zigbang]);
+  const merged = dedupe([...dabang, ...zigbang].filter(r => !mistyped(r)));
   assert.ok(merged.length > 2000, `only ${merged.length} listings, not publishing`); // a blocked run must not wipe the site
   for (const r of merged) {
     if (r.region) { r.reg = regionOf(r.region[0], r.region[1]); continue; }
