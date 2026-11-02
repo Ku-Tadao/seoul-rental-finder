@@ -23,12 +23,9 @@ env:
     zigbang_ids.json
     zigbang_danjis.json
 jobs:
-  refresh:
+  scrape:
     runs-on: ubuntu-latest
     timeout-minutes: 350
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/cache/restore@v6
@@ -47,10 +44,6 @@ jobs:
         with:
           path: ${{ env.STATE }}
           key: state-${{ github.run_id }}
-      - name: Build
-        run: node dabang_build_finder.js --selftest && node dabang_build_finder.js
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: _site
-      - id: deploy
-        uses: actions/deploy-pages@v5
+  publish:
+    needs: scrape
+    uses: ./.github/workflows/site.yml

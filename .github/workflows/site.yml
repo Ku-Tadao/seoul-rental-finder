@@ -1,0 +1,44 @@
+name: Publish site
+# Builds from the data of the last finished scrape, so site changes go live in minutes without touching a running scrape.
+on:
+  push:
+    branches: [main]
+    paths:
+      - dabang_finder.template.html
+      - dabang_build_finder.js
+      - dabang_regions.json
+      - zigbang_subway.json
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+env:
+  STATE: |
+    *.jsonl
+    dabang_rentals.json
+    zigbang_ids.json
+    zigbang_danjis.json
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: publish
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.STATE }}
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+      - run: node dabang_build_finder.js --selftest && node dabang_build_finder.js
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v5
