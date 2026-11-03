@@ -183,9 +183,16 @@ body:has(dialog[open]) { overflow: hidden; }
 #map { position: absolute; inset: 0; font: inherit; }
 .mapnote { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--muted); }
 #map .cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--btn); color: var(--btn-ink); font-size: 13px; font-weight: 700; box-shadow: 0 0 0 3px rgb(255 255 255 / .55); }
-.pin { border-radius: 50%; border: 2px solid #FFFFFF; background: var(--good); box-shadow: 0 1px 3px rgb(0 0 0 / .4); }
-.pin.above { background: var(--warn); }
-#mini { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1000; max-width: 420px; display: grid; grid-template-columns: 112px minmax(0, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+#map .tile { --tile: var(--good); display: flex; flex-direction: column; box-sizing: border-box; border: 2px solid var(--tile); border-radius: 10px; background: var(--tile); color: #FFFFFF; box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
+#map .tile.above { --tile: var(--warn); }
+#map .tile::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; margin-left: -5px; background: var(--tile); transform: rotate(45deg); }
+.tile .tphoto { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px 8px 0 0; background: var(--ph); color: var(--muted); font-size: 12px; }
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile .tprice { padding: 2px 0; font-size: 13px; font-weight: 700; line-height: 1.3; text-align: center; white-space: nowrap; }
+.tile .tcount { position: absolute; top: -8px; right: -8px; min-width: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: var(--btn); color: var(--btn-ink); font-size: 12px; font-weight: 700; line-height: 22px; text-align: center; }
+#mini { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 1000; max-width: 420px; max-height: 60%; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+#mini .mhead { padding: 10px 12px; font-size: 14px; font-weight: 600; }
+#mini .mrow { position: relative; display: grid; grid-template-columns: 112px minmax(0, 1fr); border-top: 1px solid var(--line); }
 #mini .mphoto { background: var(--ph); min-height: 112px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); text-align: center; }
 #mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
 #mini .cbody { gap: 2px; padding: 10px 12px; }
@@ -703,6 +710,14 @@ async function openDetail(key) {
   }
 }
 
+// Kakao's page grabs focus while it loads and the browser scrolls the listing to it. This undoes that before it paints, unless the pointer is on the map.
+let dlgTop = 0;
+dlg.addEventListener('scroll', () => {
+  const f = document.activeElement;
+  if (f?.tagName === 'IFRAME' && !f.matches(':hover')) { dlg.scrollTop = dlgTop; f.blur(); }
+  else dlgTop = dlg.scrollTop;
+}, { passive: true });
+
 function route() {
   if (isListing()) openDetail(decodeURIComponent(location.hash.slice(1)));
   else if (dlg.open) dlg.close();
@@ -800,25 +815,40 @@ function loadLeaflet() {
 }
 function miniHtml(x) {
   const r = x.r;
-  return `<div class="mphoto">${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
+  return `<div class="mrow"><div class="mphoto">${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
     <a class="open" href="#${esc(r.key)}" aria-label="Open ${esc(r.complex)}"></a>
-    <div class="cbody"><div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${won(x.e)} a month</div><div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x.v))} · ${sizeText(r)}</div></div>`;
+    <div class="cbody"><div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${won(x.e)} a month</div><div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x.v))} · ${sizeText(r)}</div></div></div>`;
 }
+const tileIcon = (x, n) => L.divIcon({
+  className: 'tile' + (medV !== null && x.v > medV ? ' above' : ''), iconSize: [84, 84], iconAnchor: [42, 91],
+  html: `<div class="tphoto">${x.r.photo ? `<img src="${esc(photoUrl(x.r))}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div><div class="tprice">${priceText(x.r)}</div>${n > 1 ? `<span class="tcount">${n}</span>` : ''}`,
+});
 const badgeText = v => { const b = medV === null ? 0 : Math.round((1 - v / medV) * 100); return b > 0 ? b + '% below median' : b < 0 ? -b + '% above median' : 'At the median'; };
 function paintMap(fit) {
   if (!map || !mapStale) return;
   mapStale = false;
   $('mini').hidden = true;
   cluster.clearLayers();
-  const pin = above => L.divIcon({ className: 'pin' + (above ? ' above' : ''), iconSize: [16, 16] });
-  const good = pin(false), bad = pin(true);
-  const ms = results.filter(x => x.r.lat != null).map(x => {
-    const m = L.marker([x.r.lat, x.r.lng], { icon: medV !== null && x.v > medV ? bad : good, title: x.r.complex, alt: x.r.complex });
-    m.on('click', () => { $('mini').innerHTML = miniHtml(x); $('mini').hidden = false; });
+  // The sites give every listing in a building the same point, so a building is one tile showing its best value that has a photo.
+  const spots = new Map();
+  for (const x of results) if (x.r.lat != null) {
+    const at = x.r.lat + ',' + x.r.lng;
+    if (spots.has(at)) spots.get(at).push(x); else spots.set(at, [x]);
+  }
+  const ms = [...spots.values()].map(xs => {
+    xs.sort((a, b) => a.v - b.v);
+    const best = xs.find(x => x.r.photo) ?? xs[0], m = L.marker([best.r.lat, best.r.lng], { icon: tileIcon(best, xs.length), title: best.r.complex, alt: best.r.complex, riseOnHover: true });
+    m.listings = xs.length;
+    m.on('click', () => {
+      if (xs.length === 1) { location.hash = best.r.key; return; }
+      $('mini').innerHTML = `<div class="mhead">${xs.length} listings here, best value first</div>` + xs.map(miniHtml).join('');
+      $('mini').hidden = false;
+      $('mini').scrollTop = 0;
+    });
     return m;
   });
   cluster.addLayers(ms);
-  if (fit && ms.length) map.fitBounds(cluster.getBounds(), { padding: [24, 24] });
+  if (fit && ms.length) map.fitBounds(L.latLngBounds(ms.map(m => m.getLatLng())), { padding: [24, 24] }); // the cluster has no bounds until its chunks finish
 }
 async function openMap() {
   $('mapWrap').style.setProperty('--map-top', $('mapWrap').getBoundingClientRect().top + 16 + 'px');
@@ -828,8 +858,9 @@ async function openMap() {
     map = L.map('map', { zoomControl: !matchMedia('(pointer: coarse)').matches }).setView([37.55, 126.99], 11);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
     cluster = L.markerClusterGroup({
-      chunkedLoading: true, showCoverageOnHover: false, maxClusterRadius: 60,
-      iconCreateFunction: c => { const n = c.getChildCount(), s = n < 10 ? 34 : n < 100 ? 40 : n < 1000 ? 46 : 54; return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster', iconSize: [s, s] }); },
+      chunkedLoading: true, showCoverageOnHover: false, spiderfyDistanceMultiplier: 3.5,
+      maxClusterRadius: z => z >= 17 ? 40 : 70, // about a tile wide, tighter close in so buildings show where they are
+      iconCreateFunction: c => { const n = c.getAllChildMarkers().reduce((sum, m) => sum + m.listings, 0), s = n < 10 ? 34 : n < 100 ? 40 : n < 1000 ? 46 : 54; return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster', iconSize: [s, s] }); },
     });
     map.addLayer(cluster);
     map.on('click', () => { $('mini').hidden = true; });
