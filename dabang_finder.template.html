@@ -10,7 +10,9 @@
 <style>
 :root {
   --bg: #F7F5F1; --surface: #FFFFFF; --ink: #1F1C17; --muted: #6A6358; --line: #E4DED3; --chip: #ECE7DE; --soft: #F3EFE8; --ph: #ECE7DE; --btn: #1F1C17; --btn-ink: #FFFFFF;
-  --good: #17693F; --warn: #8A5000; --on-photo: rgb(255 255 255 / .92); --photo-ink: #1F1C17;
+  --good: #17693F; --g2: #357F53; --g1: #5F7466; --warn: #8A5000; --on-photo: rgb(255 255 255 / .92); --photo-ink: #1F1C17;
+  --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 7.5v.5'/%3E%3C/svg%3E");
+  --house: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3.5 10.5L12 4l8.5 6.5V20h-5.5v-5.5h-6V20H3.5z'/%3E%3C/svg%3E");
   --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --gutter-l: max(16px, env(safe-area-inset-left, 0px)); --gutter-r: max(16px, env(safe-area-inset-right, 0px));
   color-scheme: light;
@@ -29,7 +31,8 @@ h1, h2, h3, p { margin: 0; }
 
 /* Header */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px var(--gutter-r) 8px var(--gutter-l); }
-h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+h1 { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+h1 svg { flex: none; color: var(--good); }
 .saved { flex: none; display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); font-size: 14px; font-weight: 600; }
 .saved[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
 .chips { position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 8px var(--gutter-r) 8px var(--gutter-l); background: var(--bg); }
@@ -61,10 +64,15 @@ main { display: grid; gap: 12px; min-width: 0; }
 .card { position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
 .photo { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 15px 15px 0 0; background: var(--ph); display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
 .photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.photo:not(:has(img)) { flex-direction: column; gap: 8px; }
+.photo:not(:has(img))::before { content: ''; width: 36px; height: 36px; background: var(--muted); opacity: .6; -webkit-mask: var(--house) center / contain no-repeat; mask: var(--house) center / contain no-repeat; }
 .badge { padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 700; color: #FFFFFF; background: var(--good); }
+.badge[data-help] { cursor: help; }
+.badge.g2 { background: var(--g2); }
+.badge.g1 { background: var(--g1); }
 .badge.above { background: var(--warn); }
 .badge.none { background: var(--muted); }
-.photo .badge { position: absolute; left: 12px; bottom: 12px; }
+.photo .badge { position: absolute; left: 12px; bottom: 12px; z-index: 2; }
 .open { position: absolute; inset: 0; z-index: 1; border-radius: 16px; }
 .star { position: absolute; top: 8px; right: 8px; z-index: 2; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 22px; background: var(--on-photo); color: var(--photo-ink); }
 .star svg, .tbar .fav svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
@@ -72,7 +80,9 @@ main { display: grid; gap: 12px; min-width: 0; }
 .cbody { display: flex; flex-direction: column; gap: 6px; padding: 14px; min-width: 0; }
 .line1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
 .line1 small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
-.term { position: relative; z-index: 2; padding: 0; border: 0; border-bottom: 1px dotted var(--muted); background: none; font: inherit; letter-spacing: inherit; cursor: help; }
+.term { position: relative; z-index: 2; padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit; cursor: help; }
+/* A small (i) marks anything that explains itself on hover or tap. */
+.term::after, .fact button.v::after, .ctl label[data-help]::after { content: ''; display: inline-block; width: 13px; height: 13px; margin-left: 4px; vertical-align: -1px; background: var(--muted); -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
 .real { font-size: 15px; font-weight: 600; }
 .ttl { margin-top: 4px; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .meta { font-size: 14px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
@@ -83,7 +93,7 @@ main { display: grid; gap: 12px; min-width: 0; }
 .foot { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 78ch; margin-top: 12px; }
 
 /* Help bubble */
-#tip { position: fixed; inset: auto; margin: 0; max-width: min(300px, calc(100vw - 32px)); padding: 10px 12px; border: 0; border-radius: 10px; font-size: 14px; line-height: 1.4; background: var(--btn); color: var(--btn-ink); }
+#tip { position: fixed; inset: auto; margin: 0; max-width: min(340px, calc(100vw - 32px)); white-space: pre-line; pointer-events: none; padding: 10px 12px; border: 0; border-radius: 10px; font-size: 14px; line-height: 1.4; background: var(--btn); color: var(--btn-ink); }
 
 /* Filters */
 aside { display: none; }
@@ -93,7 +103,7 @@ aside { display: none; }
 .ctl { display: flex; flex-direction: column; gap: 4px; }
 .ctl .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
 .ctl label { font-weight: 500; }
-.ctl label[title] { text-decoration: underline dotted var(--muted); text-underline-offset: 3px; cursor: help; }
+.ctl label[data-help] { cursor: help; }
 .ctl output { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 input[type=range] { width: 100%; height: 28px; margin: 0; accent-color: var(--ink); }
 .pick { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -160,11 +170,8 @@ body:has(dialog[open]) { overflow: hidden; }
 .tiles div { display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; border-radius: 12px; background: var(--soft); min-width: 0; }
 .tiles b { font-size: 16px; font-weight: 700; }
 .tiles span { font-size: 13px; line-height: 1.3; color: var(--muted); }
-.map { position: relative; overflow: hidden; height: 240px; border-radius: 12px; background: var(--soft); }
-/* Kakao's search panel takes the left 405px of its page and the pin is centred in the rest, so the frame is oversized and the panel pushed out of view. */
-.map iframe { position: absolute; top: 0; left: -410px; width: calc(100% + 410px); height: 100%; border: 0; }
-.phone .map { height: 380px; }
-.phone .map iframe { left: 0; width: 100%; } /* Kakao serves phones a layout with no side panel */
+.map { position: relative; overflow: hidden; height: 240px; border-radius: 12px; background: var(--soft); isolation: isolate; font: inherit; }
+.map .pin { border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px #FFFFFF, 0 2px 8px rgb(0 0 0 / .45); }
 .links { display: flex; gap: 8px; flex-wrap: wrap; }
 .links a { display: flex; align-items: center; height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; font-weight: 600; text-decoration: none; }
 .memohead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -174,15 +181,21 @@ body:has(dialog[open]) { overflow: hidden; }
 .fact > div { display: flex; justify-content: space-between; gap: 16px; }
 .fact span:first-child { color: var(--muted); flex: none; }
 .fact .v { font-weight: 500; text-align: right; overflow-wrap: anywhere; }
-.fact button.v { padding: 0; border: 0; border-bottom: 1px dotted var(--muted); background: none; cursor: help; }
+.fact button.v { padding: 0; border: 0; background: none; cursor: help; }
 .tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.tags button { min-height: 36px; padding: 0 12px; border: 1px dotted var(--muted); border-radius: 18px; background: none; font-size: 14px; cursor: help; }
+.tags button { min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 18px; background: none; font-size: 14px; cursor: help; }
 
 /* Map view */
 #mapWrap { position: relative; height: calc(100dvh - var(--map-top, 180px)); min-height: 320px; border-radius: 16px; overflow: hidden; background: var(--soft); isolation: isolate; }
 #map { position: absolute; inset: 0; font: inherit; }
 .mapnote { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--muted); }
-#map .cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--btn); color: var(--btn-ink); font-size: 13px; font-weight: 700; box-shadow: 0 0 0 3px rgb(255 255 255 / .55); }
+#map .cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--btn); color: var(--btn-ink); font-size: 13px; font-weight: 700; box-shadow: 0 0 0 3px rgb(255 255 255 / .55), 0 2px 6px rgb(0 0 0 / .3); }
+#map .cluster.g3 { background: var(--good); color: #FFFFFF; }
+#map .cluster.g2 { background: var(--g2); color: #FFFFFF; }
+#map .cluster.g1 { background: var(--g1); color: #FFFFFF; }
+#map .cluster.above { background: var(--warn); color: #FFFFFF; }
+#map .tile.g2 { --tile: var(--g2); }
+#map .tile.g1 { --tile: var(--g1); }
 #map .tile { --tile: var(--good); display: flex; flex-direction: column; box-sizing: border-box; border: 2px solid var(--tile); border-radius: 10px; background: var(--tile); color: #FFFFFF; box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
 #map .tile.above { --tile: var(--warn); }
 #map .tile::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; margin-left: -5px; background: var(--tile); transform: rotate(45deg); }
@@ -199,7 +212,8 @@ body:has(dialog[open]) { overflow: hidden; }
 #mini .line1 { font-size: 17px; }
 #mini .real { font-size: 14px; }
 #mini .ttl { margin-top: 0; font-size: 14px; }
-@media (prefers-color-scheme: dark) { .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.9); } }
+.leaflet-tile-pane { filter: saturate(.5); }
+@media (prefers-color-scheme: dark) { .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.85) saturate(.35); } }
 
 /* Saved */
 .savedhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
@@ -211,7 +225,6 @@ body:has(dialog[open]) { overflow: hidden; }
   #detail { width: min(1040px, calc(100vw - 48px)); height: auto; max-height: calc(100dvh - 48px); margin: auto; border-radius: 18px; }
   .gallery, .nophoto { aspect-ratio: 2 / 1; }
   .dbody { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; padding: 24px 32px 32px; }
-  .phone .map { height: 240px; }
 }
 @media (min-width: 900px) {
   .top { padding: 14px 32px; background: var(--surface); border-bottom: 1px solid var(--line); }
@@ -226,6 +239,7 @@ body:has(dialog[open]) { overflow: hidden; }
   main { flex: 1 1 0; }
   #list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
   .sortbtn { height: 32px; font-size: 15px; }
+  .sort .count { margin-left: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .info { height: 32px; }
   input[type=search] { height: 40px; font-size: 14px; }
   [data-view="saved"] aside, [data-view="saved"] .sort, [data-view="saved"] .count { display: none; }
@@ -243,12 +257,17 @@ body:has(dialog[open]) { overflow: hidden; }
   #compare .gone { opacity: .55; }
   #compare .gone img { filter: grayscale(1); }
 }
+@media (max-width: 899.98px) {
+  .bar { position: sticky; top: 60px; z-index: 4; background: var(--bg); } /* just under the sticky chips */
+  .photo:not(:has(img)) { aspect-ratio: auto; height: 112px; align-items: flex-start; justify-content: flex-start; padding: 16px; }
+  .photo:not(:has(img))::before { display: none; }
+}
 @media (max-width: 899.98px) { [data-view="saved"] .chips, [data-view="saved"] .sort, [data-view="saved"] .count { display: none; } [data-view="saved"] .bar { justify-content: flex-end; } }
 @media (prefers-reduced-motion: reduce) { .gallery { scroll-behavior: auto; } }
 </style>
 
 <header class="top">
-  <h1>Seoul Rental Value Finder</h1>
+  <h1><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5L12 4l8.5 6.5V20h-5.5v-5.5h-6V20H3.5z"/></svg>Seoul Rental Value Finder</h1>
   <div class="topright">
     <span id="segTop"></span>
     <button class="saved" id="saved" type="button" aria-pressed="false">
@@ -302,11 +321,11 @@ body:has(dialog[open]) { overflow: hidden; }
       <h2 id="savedTitle"></h2>
       <button type="button" id="share">Send to another device</button>
     </div>
-    <div class="bar">
-      <div class="sort">
+    <div class="bar" id="bar">
+      <div class="sort" id="sortBox">
         <select id="sort" hidden></select>
         <button class="sortbtn" id="sortBtn" type="button" popovertarget="sortMenu" aria-haspopup="listbox" aria-label="Sort listings"><span id="sortText"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="info" type="button" aria-label="How the ranking works" data-help="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing. Real monthly cost is rent, maintenance and what the locked-up deposit costs you each month." title="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing.">
+        <button class="info" type="button" aria-label="How the ranking works" data-help="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing. Real monthly cost is rent, maintenance and what the locked-up deposit costs you each month.">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
         </button>
       </div>
@@ -416,7 +435,7 @@ const floorText = f => f === '저층' ? 'Low floor' : f === '중층' ? 'Mid floo
 const koDate = s => { const m = String(s).match(/^(\d{4})\.?\s*(\d{1,2})(?:\.(\d{1,2}))?/) ; if (!m) return s; const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m[2] - 1]; return (m[3] ? +m[3] + ' ' : '') + mon + ' ' + m[1]; };
 const moneyKo = s => { const [a, b] = String(s).split('/'); const f = x => x.replace(/억(\d+)/, (_, n) => '억 ' + (+n).toLocaleString('en-US')).replace(/^(\d+)$/, (_, n) => (+n).toLocaleString('en-US')) + (/억$/.test(x) ? '원' : '만원'); return b ? f(a) + ' / ' + f(b) : f(a); };
 const loanText = v => { const m = String(v).match(/^(?:(\d+)억)?(\d*)$/); return m ? won((+m[1] || 0) * 10000 + (+m[2] || 0)) : /30%\s*미만/.test(v) ? 'Under 30% of market value' : /30%\s*이상/.test(v) ? '30% or more of market value' : v; };
-const helpBtn = (cls, text, help) => `<button class="${cls}" type="button" data-help="${esc(help)}" title="${esc(help)}">${esc(text)}</button>`;
+const helpBtn = (cls, text, help) => `<button class="${cls}" type="button" data-help="${esc(help)}">${esc(text)}</button>`;
 
 // Filters: each slider lives in a section, shown in the sidebar on desktop and in a bottom sheet on phones.
 const SLIDERS = {
@@ -439,7 +458,7 @@ for (const [k, s] of Object.entries(SLIDERS)) {
   const el = document.createElement('div');
   el.className = 'ctl';
   el.id = 'ctl_' + k;
-  el.innerHTML = `<div class="row"><label for="s_${k}"${s.help ? ` title="${esc(s.help)}" data-help="${esc(s.help)}"` : ''}>${s.label}</label><output id="o_${k}" for="s_${k}"></output></div><input type="range" id="s_${k}" min="0" max="${s.steps.length - 1}" step="1">`;
+  el.innerHTML = `<div class="row"><label for="s_${k}"${s.help ? ` data-help="${esc(s.help)}"` : ''}>${s.label}</label><output id="o_${k}" for="s_${k}"></output></div><input type="range" id="s_${k}" min="0" max="${s.steps.length - 1}" step="1">`;
   ($(s.box) ?? secEl(s.box)).append(el);
 }
 const val = k => SLIDERS[k].steps[+$('s_' + k).value];
@@ -451,7 +470,6 @@ $('sources').innerHTML = [['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
 
 // Row: [key (d: Dabang, z: Zigbang), category 0 apt/1 officetel, deal 0 jeonse/1 monthly, deposit, rent, fee, usable m², complex, dong, region index, floor, title, short, lh, price text, partial, building age|null, photo|null, fee estimated, size estimated, rooms|null, metres to nearest station, station index, on both sites, lat, lng]
-document.documentElement.classList.toggle('phone', /Mobi|Android|iPhone/.test(navigator.userAgent));
 const ROWS = DATA.rows.map(r => ({ key: r[0], cat: r[1], deal: r[2], dep: r[3], rent: r[4], fee: r[5], m2: r[6], complex: r[7], dong: r[8], reg: r[9], floor: r[10], title: r[11], short: r[12], lh: r[13], price: r[14], partial: r[15], age: r[16], photo: r[17], feeEst: r[18], sizeEst: r[19], beds: r[20], subM: r[21], sub: r[22], also: r[23], lat: r[24], lng: r[25] }));
 const BY_KEY = new Map(ROWS.map(r => [r.key, r]));
 const hay = r => r.hay ??= [r.complex, r.dong, dongText(r.dong), r.title, DATA.regions[r.reg].label, DATA.stations[r.sub], stationName(DATA.stations[r.sub])].join(' ').toLowerCase();
@@ -504,7 +522,7 @@ function loadState() {
 
 const median = a => { if (!a.length) return null; const s = Float64Array.from(a).sort(); return s[s.length >> 1]; };
 const isLow = f => f === '저층' || (/^\d+층$/.test(f) && parseInt(f) <= 2);
-let shown = 0, results = [], medV = null, view = 'list';
+let shown = 0, results = [], medV = null, medE = null, medA = null, medAge = null, view = 'list';
 const PAGE = 60;
 
 function score(r, rate = val('rate'), penalty = val('penalty')) {
@@ -551,11 +569,29 @@ const STAR = s => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidd
 const favBtn = (key, cls, size) => `<button class="${cls}" type="button" data-fav="${esc(key)}" aria-pressed="${favs.has(key)}" aria-label="Save this listing">${STAR(size)}</button>`;
 const photoUrl = r => r.key[0] === 'd' ? 'https://d1774jszgerdmk.cloudfront.net/512/' + r.photo : 'https://ic.zigbang.com/' + r.photo + '?w=400';
 const photoTag = r => r.photo ? `<img src="${esc(photoUrl(r))}" alt="${esc(r.complex)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo on this listing')">` : 'No photo on this listing';
-const badge = v => {
-  if (medV === null) return '<span class="badge none">Not compared</span>';
-  const below = Math.round((1 - v / medV) * 100);
-  return below > 0 ? `<span class="badge">${below}% below median</span>` : below < 0 ? `<span class="badge above">${-below}% above median</span>` : '<span class="badge">At the median</span>';
-};
+const belowOf = v => Math.round((1 - v / medV) * 100);
+const shade = b => b >= 60 ? 'g3' : b >= 30 ? 'g2' : b >= 0 ? 'g1' : 'above';
+// What puts a listing above or below the median, for the badge's hover.
+function whyText(x) {
+  const r = x.r, penalty = val('penalty'), rate = val('rate'), out = [];
+  out.push(`${perM2(x.v)} a month per m² of usable space, against a median of ${perM2(medV)} for the ${results.length.toLocaleString('en-US')} listings your filters show.`);
+  const cmp = (v, m, hi, lo) => m && v >= m * 1.15 ? hi : m && v <= m * .85 ? lo : null;
+  const why = [
+    cmp(r.m2, medA, `+ Bigger than most: ${sizeText(r)}, median ${Math.round(medA)} m²`, `− Smaller than most: ${sizeText(r)}, median ${Math.round(medA)} m²`),
+    cmp(x.e, medE, `− Costs more each month than most: ${won(x.e)}, median ${won(medE)}`, `+ Costs less each month than most: ${won(x.e)}, median ${won(medE)}`),
+    !penalty ? null : r.age === null ? '+ Building age unknown, so no age penalty'
+      : medAge !== null && r.age <= medAge - 5 ? `+ Newer than most: ${ageShort(r.age)}, median ${medAge} yrs, so a smaller age penalty (+${+(penalty * r.age / 10).toFixed(1)}%)`
+      : medAge !== null && r.age >= medAge + 5 ? `− Older than most: ${ageShort(r.age)}, median ${medAge} yrs, which adds +${+(penalty * r.age / 10).toFixed(1)}%` : null,
+  ].filter(Boolean);
+  out.push(...(why.length ? why : ['· Close to the median on size, monthly cost and age']));
+  if (r.dep && r.dep * rate / 1200 > x.e * .6) out.push(`· Most of the real cost is the deposit, counted at ${rate.toFixed(1)}% a year. A higher rate in “Adjust the formula” makes it look worse.`);
+  if (r.feeEst) out.push('· Maintenance is estimated from the district median');
+  if (r.sizeEst) out.push('· Usable size is estimated');
+  if (belowOf(x.v) >= 80) out.push('! Far cheaper than usual. Check the listing isn’t one room of a shared unit or a mistyped price.');
+  return out.join('\n');
+}
+const badge = x => medV === null ? '<span class="badge none">Not compared</span>'
+  : `<span class="badge ${shade(belowOf(x.v))}" tabindex="0" data-help="${esc(whyText(x))}">${badgeText(x.v)}</span>`;
 const termBtn = r => helpBtn('term', r.deal ? 'Wolse' : 'Jeonse', r.deal ? HELP.wolse : HELP.jeonse);
 const priceText = r => r.deal ? won(r.rent) + '/mo' : won(r.dep);
 const depSmall = r => r.deal ? `<small>${r.dep ? '+ ' + won(r.dep) + ' deposit' : 'no deposit'}</small>` : '';
@@ -574,7 +610,7 @@ function cardHtml(x, gone) {
   const facts = [typeText(r), sizeText(r), roomsText(r), ageShort(r.age)].filter(Boolean).join(' · ');
   const flags = [r.feeEst && 'Maintenance estimated', r.partial && 'Might be one room of a unit', r.short && 'Short-term', r.lh && 'LH public housing'].filter(Boolean).join(' · ');
   return `<article class="card${gone ? ' gone' : ''}">
-    <div class="photo">${photoTag(r)}${gone ? '<span class="badge none">No longer listed</span>' : badge(x.v)}</div>
+    <div class="photo">${photoTag(r)}${gone ? '<span class="badge none">No longer listed</span>' : badge(x)}</div>
     ${gone ? '' : `<a class="open" href="#${esc(r.key)}" aria-label="Open ${esc(r.complex)}"></a>`}
     ${favBtn(r.key, 'star', 22)}
     <div class="cbody">
@@ -637,7 +673,7 @@ function detailHtml(r, d) {
     r.age === null ? ['Building age unknown, no penalty', perM2(x.v)] : pen ? [`With ${r.age}-year-old building penalty, +${+pen.toFixed(1)}%`, perM2(x.v)] : null,
     medV !== null ? ['<b>Median listing</b>', `<b>${perM2(medV)}</b>`] : null,
   ].filter(Boolean).map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
-  const head = `<section class="dsec dhead">${badge(x.v)}
+  const head = `<section class="dsec dhead">${badge(x)}
       <div class="bigprice">${termBtn(r).replace('class="term"', 'class="term" style="z-index:0"')} <span id="dTitle" title="${esc(moneyKo(r.price))}">${priceText(r)}</span> ${depSmall(r)}</div>
       <div class="bigreal">Real cost ${won(x.e)} a month</div>
       <div class="muted">${esc(areaText(r))} · ${typeText(r)}</div>
@@ -670,7 +706,7 @@ function detailHtml(r, d) {
     <div class="dcol">
       ${head}${tiles}
       <section class="dsec"><h2>Location</h2>
-        <div class="map"><iframe src="${kakao}" title="Map of ${esc(r.complex)}" referrerpolicy="no-referrer" loading="lazy"></iframe></div>
+        <div class="map" id="dMap" data-at="${d.lat},${d.lng}" aria-label="Map of ${esc(r.complex)}"></div>
         <div>${esc(d.addr)}</div>
         <div class="links"><a href="${kakao}" target="_blank" rel="noopener">Open in Kakao Map</a><a href="https://map.naver.com/p/search/${encodeURIComponent(d.addr)}" target="_blank" rel="noopener">Open in Naver Map</a></div>
         <h3>Nearby</h3>
@@ -703,6 +739,7 @@ async function openDetail(key) {
       $('dBody').innerHTML = detailHtml(r, d);
       if (open) dlg.querySelector('.how').open = true;
       $('gal')?.addEventListener('scroll', e => { const g = e.target; $('galN').textContent = `${Math.round(g.scrollLeft / g.clientWidth) + 1} / ${g.children.length}`; }, { passive: true });
+      paintDetailMap();
     }
     if (favs.has(key) && d?.addr) { favs.get(key).addr = d.addr; saveFavs(); }
   } catch {
@@ -710,13 +747,20 @@ async function openDetail(key) {
   }
 }
 
-// Kakao's page grabs focus while it loads and the browser scrolls the listing to it. This undoes that before it paints, unless the pointer is on the map.
-let dlgTop = 0;
-dlg.addEventListener('scroll', () => {
-  const f = document.activeElement;
-  if (f?.tagName === 'IFRAME' && !f.matches(':hover')) { dlg.scrollTop = dlgTop; f.blur(); }
-  else dlgTop = dlg.scrollTop;
-}, { passive: true });
+// The listing's map: the same tiles as the map view with one pin, so it matches the page. Scrolling the page past it doesn't zoom it.
+let dMap = null;
+function paintDetailMap() {
+  dMap?.remove(); dMap = null;
+  const el = $('dMap');
+  if (!el) return;
+  const at = el.dataset.at.split(',').map(Number);
+  loadLeaflet().then(() => {
+    if (!el.isConnected) return;
+    dMap = L.map(el, { scrollWheelZoom: false, dragging: !matchMedia('(pointer: coarse)').matches }).setView(at, 16);
+    osmTiles(dMap);
+    L.marker(at, { icon: L.divIcon({ className: 'pin', iconSize: [16, 16] }), keyboard: false }).addTo(dMap);
+  }).catch(() => { el.textContent = "Couldn't load the map."; });
+}
 
 function route() {
   if (isListing()) openDetail(decodeURIComponent(location.hash.slice(1)));
@@ -725,6 +769,7 @@ function route() {
 addEventListener('hashchange', () => { navigated = true; route(); });
 dlg.addEventListener('close', () => {
   current = null;
+  dMap?.remove(); dMap = null;
   $('dBody').innerHTML = '';
   if (isListing()) navigated ? history.back() : history.replaceState(null, '', location.pathname + location.search);
 });
@@ -736,10 +781,25 @@ dlg.addEventListener('click', e => {
 
 // Tap or hover help for Korean terms. The bubble has to sit inside an open dialog to show above it.
 const tip = $('tip');
+let hoverTip = null;
 document.addEventListener('click', e => {
   const b = e.target.closest?.('[data-help]');
   if (!b) return;
   e.preventDefault();
+  if (b !== hoverTip) showTip(b);
+});
+document.addEventListener('pointerover', e => {
+  const b = e.pointerType === 'mouse' && e.target.closest?.('[data-help]');
+  if (!b || b === hoverTip) return;
+  hoverTip = b;
+  showTip(b);
+});
+document.addEventListener('pointerout', e => {
+  if (!hoverTip || hoverTip.contains(e.relatedTarget)) return;
+  hoverTip = null;
+  if (tip.matches(':popover-open')) tip.hidePopover();
+});
+function showTip(b) {
   if (tip.matches(':popover-open')) tip.hidePopover();
   tip.textContent = b.dataset.help;
   (b.closest('dialog') ?? document.body).append(tip);
@@ -747,7 +807,7 @@ document.addEventListener('click', e => {
   const a = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
   tip.style.left = Math.max(16, Math.min(a.left, innerWidth - t.width - 16)) + 'px';
   tip.style.top = (a.top - t.height - 8 > 8 ? a.top - t.height - 8 : a.bottom + 8) + 'px';
-});
+}
 
 // Saved listings live in this browser with a snapshot, so one that disappears from the data still shows what it was.
 const FAV_STORE = 'finder-favourites-v2';
@@ -801,7 +861,7 @@ function paintSaved() {
     ['Subway', ({ x: { r } }) => `${esc(subText(r))} ${dist(r.subM)}<small>Nearest subway</small>`],
     ['Address', i => `${esc(i.addr ?? areaText(i.x.r))}<small>${typeText(i.x.r)}</small>`],
   ];
-  $('compare').innerHTML = items.length ? `<table><thead><tr>${items.map(i => { const r = i.x.r; return `<th scope="col" class="${i.gone ? 'gone' : ''}"><div class="cphoto">${photoTag(r)}${favBtn(r.key, 'star', 22)}</div>${i.gone ? `<span class="ctitle">${esc(r.complex)}</span><small>No longer listed</small>` : `<a class="ctitle" href="#${esc(r.key)}">${esc(r.complex)}</a><small>${esc(areaText(r))}</small>${badge(i.x.v)}`}</th>`; }).join('')}</tr></thead><tbody>${rows.map(([, f]) => `<tr>${items.map(i => `<td class="${i.gone ? 'gone' : ''}">${f(i)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '<div class="empty">Nothing saved yet. Click the star on a listing to keep it here.</div>';
+  $('compare').innerHTML = items.length ? `<table><thead><tr>${items.map(i => { const r = i.x.r; return `<th scope="col" class="${i.gone ? 'gone' : ''}"><div class="cphoto">${photoTag(r)}${favBtn(r.key, 'star', 22)}</div>${i.gone ? `<span class="ctitle">${esc(r.complex)}</span><small>No longer listed</small>` : `<a class="ctitle" href="#${esc(r.key)}">${esc(r.complex)}</a><small>${esc(areaText(r))}</small>${badge(i.x)}`}</th>`; }).join('')}</tr></thead><tbody>${rows.map(([, f]) => `<tr>${items.map(i => `<td class="${i.gone ? 'gone' : ''}">${f(i)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '<div class="empty">Nothing saved yet. Click the star on a listing to keep it here.</div>';
 }
 
 // Map view: OpenStreetMap with grouped pins, loaded the first time it's opened.
@@ -810,9 +870,9 @@ const CDN = 'https://cdn.jsdelivr.net/npm/';
 const addCss = href => document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href }));
 const addJs = src => new Promise((ok, no) => document.head.append(Object.assign(document.createElement('script'), { src, onload: ok, onerror: no })));
 function loadLeaflet() {
-  addCss(CDN + 'leaflet@1.9.4/dist/leaflet.css');
-  return leaflet ??= addJs(CDN + 'leaflet@1.9.4/dist/leaflet.js').then(() => addJs(CDN + 'leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js'));
+  return leaflet ??= (addCss(CDN + 'leaflet@1.9.4/dist/leaflet.css'), addJs(CDN + 'leaflet@1.9.4/dist/leaflet.js').then(() => addJs(CDN + 'leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js')));
 }
+const osmTiles = m => L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
 function miniHtml(x) {
   const r = x.r;
   return `<div class="mrow"><div class="mphoto">${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
@@ -820,7 +880,7 @@ function miniHtml(x) {
     <div class="cbody"><div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${won(x.e)} a month</div><div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x.v))} · ${sizeText(r)}</div></div></div>`;
 }
 const tileIcon = (x, n) => L.divIcon({
-  className: 'tile' + (medV !== null && x.v > medV ? ' above' : ''), iconSize: [84, 84], iconAnchor: [42, 91],
+  className: 'tile' + (medV !== null ? ' ' + shade(belowOf(x.v)) : ''), iconSize: [84, 84], iconAnchor: [42, 91],
   html: `<div class="tphoto">${x.r.photo ? `<img src="${esc(photoUrl(x.r))}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div><div class="tprice">${priceText(x.r)}</div>${n > 1 ? `<span class="tcount">${n}</span>` : ''}`,
 });
 const badgeText = v => { const b = medV === null ? 0 : Math.round((1 - v / medV) * 100); return b > 0 ? b + '% below median' : b < 0 ? -b + '% above median' : 'At the median'; };
@@ -839,6 +899,7 @@ function paintMap(fit) {
     xs.sort((a, b) => a.v - b.v);
     const best = xs.find(x => x.r.photo) ?? xs[0], m = L.marker([best.r.lat, best.r.lng], { icon: tileIcon(best, xs.length), title: best.r.complex, alt: best.r.complex, riseOnHover: true });
     m.listings = xs.length;
+    m.med = median(xs.map(x => x.v));
     m.on('click', () => {
       if (xs.length === 1) { location.hash = best.r.key; return; }
       $('mini').innerHTML = `<div class="mhead">${xs.length} listings here, best value first</div>` + xs.map(miniHtml).join('');
@@ -856,11 +917,12 @@ async function openMap() {
     try { await loadLeaflet(); } catch { $('mapNote').textContent = "Couldn't load the map. Check your connection and try again."; leaflet = null; return; }
     $('mapNote').hidden = true;
     map = L.map('map', { zoomControl: !matchMedia('(pointer: coarse)').matches }).setView([37.55, 126.99], 11);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+    osmTiles(map);
     cluster = L.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyDistanceMultiplier: 3.5,
       maxClusterRadius: z => z >= 17 ? 40 : 70, // about a tile wide, tighter close in so buildings show where they are
-      iconCreateFunction: c => { const n = c.getAllChildMarkers().reduce((sum, m) => sum + m.listings, 0), s = n < 10 ? 34 : n < 100 ? 40 : n < 1000 ? 46 : 54; return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster', iconSize: [s, s] }); },
+      // Sized by how many listings it holds, coloured by how its typical building compares with the median.
+      iconCreateFunction: c => { const ms = c.getAllChildMarkers(), n = ms.reduce((sum, m) => sum + m.listings, 0), s = Math.round(28 + 10 * Math.log10(n)); return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster' + (medV !== null ? ' ' + shade(belowOf(median(ms.map(m => m.med)))) : ''), iconSize: [s, s] }); },
     });
     map.addLayer(cluster);
     map.on('click', () => { $('mini').hidden = true; });
@@ -1029,6 +1091,9 @@ function update() {
   for (const k of Object.keys(SLIDERS)) $('o_' + k).textContent = SLIDERS[k].fmt(val(k));
   results = compute();
   medV = median(results.map(x => x.v));
+  medE = median(results.map(x => x.e));
+  medA = median(results.map(x => x.a));
+  medAge = median(results.filter(x => x.r.age !== null).map(x => x.r.age));
   shown = 0;
   $('sortText').textContent = $('sort').selectedOptions[0]?.textContent ?? '';
   paintCount();
@@ -1048,9 +1113,9 @@ $('reset').addEventListener('click', () => { resetAll(); update(); });
 $('saved').addEventListener('click', () => setView(view === 'saved' ? 'list' : 'saved'));
 $('seg').addEventListener('click', e => { const v = e.target.closest('button')?.dataset.view; if (v) setView(v); });
 
-// The List/Map switch sits in the top bar on desktop and beside the sort on phones.
+// The List/Map switch sits in the top bar on desktop and beside the sort on phones; the count sits beside the sort on desktop and under it on phones.
 const wide = matchMedia('(min-width: 900px)');
-const placeSeg = () => (wide.matches ? $('segTop') : $('segBar')).append($('seg'));
+const placeSeg = () => { (wide.matches ? $('segTop') : $('segBar')).append($('seg')); wide.matches ? $('sortBox').append($('count')) : $('bar').after($('count')); };
 wide.addEventListener('change', () => { placeSeg(); if (wide.matches && sheet.open) sheet.close(); });
 placeSeg();
 
