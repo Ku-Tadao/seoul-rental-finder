@@ -320,7 +320,7 @@ function main() {
   for (const [s, o] of shards) fs.writeFileSync(`${DIR}/${s}.json`, JSON.stringify(o));
 
   const date = new Date(fs.statSync('dabang_details.jsonl').mtime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  const data = { date, rate: Math.round((rate ?? 5.5) * 10) / 10, penalty: AGE_PENALTY, regions, stations: stations.map(s => s.name), stationAt: stations.map(s => [+s.lat.toFixed(5), +s.lng.toFixed(5)]), rows };
+  const data = { short: fs.existsSync('33m2_details.jsonl'), date, rate: Math.round((rate ?? 5.5) * 10) / 10, penalty: AGE_PENALTY, regions, stations: stations.map(s => s.name), stationAt: stations.map(s => [+s.lat.toFixed(5), +s.lng.toFixed(5)]), rows };
   const html = fs.readFileSync('dabang_finder.template.html', 'utf8').replace('__DATA__', () => JSON.stringify(data).replace(/</g, '\\u003c'));
   fs.writeFileSync(SITE + '/index.html', html);
 
