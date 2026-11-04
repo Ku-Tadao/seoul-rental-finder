@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronDownIcon, HouseIcon, StarIcon } from "lucide-react"
+import { ChevronDownIcon, HouseIcon, MoonIcon, StarIcon, SunIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -197,12 +198,12 @@ export function App() {
   return (
     <FavsCtx.Provider value={favApi}>
       <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 lg:flex-nowrap lg:px-6">
-        <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+        <h1 className="flex items-center gap-2 text-base font-bold lg:text-lg tracking-tight">
           <HouseIcon aria-hidden className="size-6 flex-none text-value-3" />
           Seoul Rental Value Finder
         </h1>
         {tabs && (
-          <nav aria-label="Rental length" className="order-3 flex w-full rounded-xl bg-secondary p-1 lg:order-none lg:w-auto">
+          <nav aria-label="Rental length" className="order-3 flex flex-1 basis-[calc(100%-56px)] rounded-xl bg-secondary p-1 lg:order-none lg:flex-none lg:basis-auto">
             {(["long", "short"] as const).map((t) => {
               const here = t === (DATA.site ?? "long")
               return (
@@ -218,8 +219,10 @@ export function App() {
             })}
           </nav>
         )}
+        {!wide && <ThemeButton className="order-3" />}
         <div className="flex items-center gap-2">
           {wide && seg}
+          {wide && <ThemeButton />}
           <Button variant={view === "saved" ? "default" : "outline"} size="xl" className="rounded-full" aria-pressed={view === "saved"} onClick={() => setView(view === "saved" ? "list" : "saved")}>
             <StarIcon data-icon="inline-start" className="fill-current" />
             Saved {myKeys.length}
@@ -268,5 +271,21 @@ export function App() {
       {!wide && <Sheet {...secProps} sec={sheet} onClose={() => setSheet(null)} count={n} />}
       <Detail r={detailRow} med={med} onClose={closeDetail} onLoaded={onLoaded} />
     </FavsCtx.Provider>
+  )
+}
+
+// Dark is the default; light is saved as finder-theme and applied before paint by the script in index.html.
+function ThemeButton({ className }: { className?: string }) {
+  const [light, setLight] = useState(() => document.documentElement.classList.contains("light"))
+  const flip = () => {
+    const next = !light
+    document.documentElement.classList.toggle("light", next)
+    try { if (next) localStorage.setItem("finder-theme", "light"); else localStorage.removeItem("finder-theme") } catch { /* private mode */ }
+    setLight(next)
+  }
+  return (
+    <Button variant="outline" size="icon-xl" className={cn("rounded-full", className)} aria-label={light ? "Switch to dark mode" : "Switch to light mode"} title={light ? "Dark mode" : "Light mode"} onClick={flip}>
+      {light ? <MoonIcon /> : <SunIcon />}
+    </Button>
   )
 }

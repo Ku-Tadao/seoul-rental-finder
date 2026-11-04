@@ -3,7 +3,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/* Dark unless you switch to light (html.light, saved as finder-theme). */
+@custom-variant dark (&:where(:root:not(.light), :root:not(.light) *));
 
 @theme {
     --breakpoint-lg: 56.25rem; /* 900px: the sidebar layout starts here, as on the old page */
@@ -59,25 +60,26 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* The old page's warm paper palette, mapped onto shadcn's tokens. */
+/* The old page's warm paper palette, toned down so the light theme doesn't glare: no pure white, a dimmer page. */
 :root {
-    --background: #F7F5F1;
+    color-scheme: light;
+    --background: #E6E1D8;
     --foreground: #1F1C17;
-    --card: #FFFFFF;
+    --card: #F1EDE6;
     --card-foreground: #1F1C17;
-    --popover: #FFFFFF;
+    --popover: #F1EDE6;
     --popover-foreground: #1F1C17;
     --primary: #1F1C17;
-    --primary-foreground: #FFFFFF;
-    --secondary: #ECE7DE;
+    --primary-foreground: #F1EDE6;
+    --secondary: #DAD4C9;
     --secondary-foreground: #1F1C17;
-    --muted: #F3EFE8;
-    --muted-foreground: #6A6358;
-    --accent: #ECE7DE;
+    --muted: #E0DAD0;
+    --muted-foreground: #5F584D;
+    --accent: #DAD4C9;
     --accent-foreground: #1F1C17;
     --destructive: oklch(0.577 0.245 27.325);
-    --border: #E4DED3;
-    --input: #D9D2C5;
+    --border: #D3CCBF;
+    --input: #C6BEAF;
     --ring: #6A6358;
     --chart-1: #17693F;
     --chart-2: #357F53;
@@ -85,13 +87,13 @@
     --chart-4: #8A5000;
     --chart-5: #6A6358;
     --radius: 0.75rem;
-    --sidebar: #FFFFFF;
+    --sidebar: #F1EDE6;
     --sidebar-foreground: #1F1C17;
     --sidebar-primary: #1F1C17;
-    --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #ECE7DE;
+    --sidebar-primary-foreground: #F1EDE6;
+    --sidebar-accent: #DAD4C9;
     --sidebar-accent-foreground: #1F1C17;
-    --sidebar-border: #E4DED3;
+    --sidebar-border: #D3CCBF;
     --sidebar-ring: #6A6358;
     /* How far below its district median a listing is: 60%+, 30%+, 0%+, above. White text passes AA on each. */
     --value-3: #17693F;
@@ -103,8 +105,9 @@
     --photo-ink: #1F1C17;
 }
 
-@media (prefers-color-scheme: dark) {
-:root {
+/* The default. */
+:root:not(.light) {
+    color-scheme: dark;
     --background: #171512;
     --foreground: #F2EEE6;
     --card: #211E1A;
@@ -132,7 +135,6 @@
     --sidebar-border: #37322B;
     --sidebar-ring: #A9A093;
 }
-}
 
 @layer base {
   * {
@@ -149,7 +151,7 @@
 /* Map pins and clusters are Leaflet divIcons, plain HTML, so they're styled here. Unlayered and scoped to .leaflet-container, because Leaflet's own unlayered CSS would beat anything inside a layer. */
 div.leaflet-container { font: inherit; background: var(--muted); }
 .leaflet-container .leaflet-tile-pane { filter: saturate(0.5); }
-@media (prefers-color-scheme: dark) { .leaflet-container .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.85) saturate(0.35); } }
+:root:not(.light) .leaflet-container .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.85) saturate(0.35); }
 .leaflet-container .map-pin { border-radius: 50%; background: var(--value-3); box-shadow: 0 0 0 3px #FFFFFF, 0 2px 8px rgb(0 0 0 / 0.45); }
 .leaflet-container .map-cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 13px; font-weight: 700; box-shadow: 0 0 0 3px rgb(255 255 255 / 0.55), 0 2px 6px rgb(0 0 0 / 0.3); }
 .leaflet-container .map-tile { --tile: var(--value-3); display: flex; flex-direction: column; border: 2px solid var(--tile); border-radius: 10px; background: var(--tile); color: var(--on-value); box-shadow: 0 2px 6px rgb(0 0 0 / 0.35); }
