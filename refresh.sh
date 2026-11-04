@@ -13,4 +13,5 @@ dabang() {
 }
 dabang &
 node zigbang_export.js &
+node 33m2_export.js &
 wait

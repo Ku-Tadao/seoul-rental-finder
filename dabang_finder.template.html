@@ -54,6 +54,9 @@ h1 svg { flex: none; color: var(--good); }
 .seg { flex: none; display: flex; padding: 3px; border-radius: 12px; background: var(--chip); }
 .seg button { height: 38px; padding: 0 16px; border: 0; border-radius: 9px; background: none; font-size: 14px; font-weight: 500; }
 .seg button[aria-pressed="true"] { background: var(--surface); font-weight: 600; }
+.tabs a { display: flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 9px; font-size: 14px; font-weight: 500; color: inherit; text-decoration: none; white-space: nowrap; }
+.tabs a[aria-current="page"] { background: var(--surface); font-weight: 600; }
+@media (max-width: 899.98px) { .top { flex-wrap: wrap; } .tabs { order: 3; width: 100%; } .tabs a { flex: 1; justify-content: center; } }
 .count { color: var(--muted); font-size: 14px; }
 
 .layout { display: block; padding: 0 var(--gutter-r) 32px var(--gutter-l); }
@@ -268,6 +271,7 @@ body:has(dialog[open]) { overflow: hidden; }
 
 <header class="top">
   <h1><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5L12 4l8.5 6.5V20h-5.5v-5.5h-6V20H3.5z"/></svg>Seoul Rental Value Finder</h1>
+  <nav class="seg tabs" id="tabs" aria-label="Rental length"><a data-term="long">Long term</a><a data-term="short">Short term</a></nav>
   <div class="topright">
     <span id="segTop"></span>
     <button class="saved" id="saved" type="button" aria-pressed="false">
@@ -485,7 +489,7 @@ const setVal = (k, v) => { const s = SLIDERS[k]; let i = s.steps.indexOf(v); if 
 $('types').innerHTML = [['apt', 'Apartments'], ['off', 'Officetels'], ['jeonse', 'Jeonse 전세'], ['monthly', 'Wolse 월세']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
 $('curs').innerHTML = Object.entries(CUR).map(([c, [s, name]]) => `<label title="${name}"><input type="radio" name="cur" id="cur_${c}" value="${c}"${c === 'KRW' ? ' checked' : ''}> ${s} ${c}</label>`).join('');
-$('sources').innerHTML =[['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
+$('sources').innerHTML = DATA.site ? '' : [['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
 
 // Row: [key (d: Dabang, z: Zigbang), category 0 apt/1 officetel, deal 0 jeonse/1 monthly, deposit, rent, fee, usable m², complex, dong, region index, floor, title, short, lh, price text, partial, building age|null, photo|null, fee estimated, size estimated, rooms|null, metres to nearest station, station index, on both sites, lat, lng]
@@ -501,8 +505,8 @@ $('areas').innerHTML = Object.entries(groups).sort((a, b) => b[1].length - a[1].
 const areaBoxes = [...document.querySelectorAll('[data-reg]')];
 const regionsOf = p => areaBoxes.filter(b => DATA.regions[+b.dataset.reg].province === p);
 
-const CHECKS = ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang'];
-const CHECK_DEFAULTS = { t_apt: true, t_off: true, t_jeonse: true, t_monthly: true, t_dabang: true, t_zigbang: true, unknownFee: true };
+const CHECKS = ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang'].filter(k => !(DATA.site && /^t_(dabang|zigbang)$/.test(k)));
+const CHECK_DEFAULTS = { t_apt: true, t_off: true, t_jeonse: true, t_monthly: true, t_dabang: true, t_zigbang: true, unknownFee: true, unknownAge: DATA.site === 'short' }; // 33m2 publishes no building age, so its listings show by default
 
 // Up to two stations of your own; distance to them shows on cards and can filter and sort.
 let places = [];
@@ -518,7 +522,7 @@ function resetSection(el) {
 const ALL_SECS = [...document.querySelectorAll('[data-sec]')];
 function resetAll() { ALL_SECS.forEach(resetSection); $('sort').value = 'v'; }
 
-const STORE = 'finder-filters-v2';
+const STORE = 'finder-filters-v2' + (DATA.site ? '-' + DATA.site : ''); // separate saved filters per site, since both pages share an origin
 function saveState() {
   try {
     localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value, p: places, u: cur }));
@@ -612,7 +616,7 @@ function compute() {
   const out = [];
   rows: for (const r of ROWS) {
     if (!(r.cat ? c.t_off : c.t_apt) || !(r.deal ? c.t_monthly : c.t_jeonse)) continue;
-    if (!(r.also ? c.t_dabang || c.t_zigbang : r.key[0] === 'd' ? c.t_dabang : c.t_zigbang)) continue;
+    if (!DATA.site && !(r.also ? c.t_dabang || c.t_zigbang : r.key[0] === 'd' ? c.t_dabang : c.t_zigbang)) continue;
     if (r.partial && !c.partial) continue;
     if (r.short && !c.shortTerm) continue;
     if (r.lh && !c.lh) continue;
@@ -640,7 +644,7 @@ function compute() {
 
 const STAR = s => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>`;
 const favBtn = (key, cls, size) => `<button class="${cls}" type="button" data-fav="${esc(key)}" aria-pressed="${favs.has(key)}" aria-label="Save this listing">${STAR(size)}</button>`;
-const photoUrl = r => r.key[0] === 'd' ? 'https://d1774jszgerdmk.cloudfront.net/512/' + r.photo : 'https://ic.zigbang.com/' + r.photo + '?w=400';
+const photoUrl = r => r.key[0] === 'd' ? 'https://d1774jszgerdmk.cloudfront.net/512/' + r.photo : r.key[0] === 'm' ? 'https://d1pviohoskiraj.cloudfront.net/' + r.photo + '?b=samsamm2&d=720x480' : 'https://ic.zigbang.com/' + r.photo + '?w=400';
 const photoTag = r => r.photo ? `<img src="${esc(photoUrl(r))}" alt="${esc(r.complex)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo on this listing')">` : 'No photo on this listing';
 const belowOf = x => Math.round((1 - x.v / medOf(x).v) * 100);
 const shade = b => b >= 60 ? 'g3' : b >= 30 ? 'g2' : b >= 0 ? 'g1' : 'above';
@@ -1192,7 +1196,12 @@ const placeSeg = () => { (wide.matches ? $('segTop') : $('segBar')).append($('se
 wide.addEventListener('change', () => { placeSeg(); if (wide.matches && sheet.open) sheet.close(); });
 placeSeg();
 
-$('foot').textContent = `${ROWS.length.toLocaleString('en-US')} apartment and officetel rentals in Seoul and nearby cities, from Dabang and Zigbang. Usable size is the exclusive area (전용면적) from the listing, and age comes from the building's approval date. Zigbang publishes no maintenance figure for apartments, so those fees and any others missing are estimated from the median per m² of the same type in the same district. Distances are straight lines, not walking routes. Single rooms are detected from listing text and room counts, so some will slip through: if a price looks too good for the size, read the listing. Agent details aren't shown here, so use the link in a listing to contact them. Listings are a snapshot and may already be gone.`;
+$('foot').textContent = DATA.foot ?? `${ROWS.length.toLocaleString('en-US')} apartment and officetel rentals in Seoul and nearby cities, from Dabang and Zigbang. Usable size is the exclusive area (전용면적) from the listing, and age comes from the building's approval date. Zigbang publishes no maintenance figure for apartments, so those fees and any others missing are estimated from the median per m² of the same type in the same district. Distances are straight lines, not walking routes. Single rooms are detected from listing text and room counts, so some will slip through: if a price looks too good for the size, read the listing. Agent details aren't shown here, so use the link in a listing to contact them. Listings are a snapshot and may already be gone.`;
+for (const a of $('tabs').children) {
+  const here = a.dataset.term === (DATA.site ?? 'long');
+  a.href = here ? './' : DATA.site ? '../' : a.dataset.term + '/'; // relative, so it works under a GitHub Pages project path
+  if (here) a.setAttribute('aria-current', 'page');
+}
 loadFavs();
 paintSort();
 paintPlaces();

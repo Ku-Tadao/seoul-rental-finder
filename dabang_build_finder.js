@@ -213,8 +213,65 @@ function estimateFees(rows) {
   for (const r of rows) if (r.fee === null) { r.fee = Math.round(r.m2 * med(perM2.get(r.reg + '|' + r.cat) ?? perM2.get(String(r.cat)) ?? [0])); r.feeEst = true; }
 }
 
+// 33m2 gets its own page with the same layout, built from 33m2_details.jsonl (see 33m2_export.js). Its weekly prices become monthly (x52/12) so they compare with the Dabang and Zigbang figures.
+const won10k = weekly => Math.round(weekly * 52 / 12 / 10000);
+const won = n => (n ?? 0).toLocaleString('en-US') + ' KRW';
+
+function from33m2(d) {
+  const pic = d.pictures?.[0] ?? null;
+  return {
+    key: 'm:' + d.rid, cat: d.propertyType === 'OFFICETEL' ? 1 : 0, deposit: Math.round(d.deposit / 10000), rent: won10k(d.usingFee), fee: won10k(d.mgmtFee), m2: d.squareMeterSize, sizeEst: false, feeEst: false,
+    complex: scrub(d.roomName), dong: d.town, region: [d.state, d.province], floor: '', title: scrub(d.roomName), short: false, lh: false, price: `${Math.round(d.deposit / 10000)}/${won10k(d.usingFee)}`, partial: false, age: null,
+    photo: pic, beds: d.roomCnt || null, lat: d.lat, lng: d.lng,
+    detail: {
+      memo: scrub([d.description, d.additionalDescription].filter(Boolean).join('\n\n')), addr: d.addrStreet, jibun: d.addrLot, lat: d.lat, lng: d.lng,
+      imgs: (d.pictures ?? []).map(p => 'https://d1pviohoskiraj.cloudfront.net/' + p + '?b=samsamm2&d=720x480'),
+      facts: clean([
+        ['Usable size', d.squareMeterSize ? d.squareMeterSize.toFixed(1) + ' m²' : null], ['Rooms', d.roomCnt], ['Bathrooms', d.bathroomCnt], ['Elevator', d.hasElevator ? 'Yes' : 'No'],
+        ['Deposit (refundable)', won(d.deposit)], ['Weekly rent', won(d.usingFee)], ['Weekly management fee', won(d.mgmtFee)], ['Minimum stay', d.minimumContractWeeks ? d.minimumContractWeeks + ' week(s)' : null],
+        ['Utilities included', [d.includeElectricity && 'electricity', d.includeWater && 'water', d.includeGas && 'gas'].filter(Boolean).join(', ') || null], ['Pets', d.petAllowed ? 'Allowed' : 'Not allowed'], ['Parking', d.parkingNotice], ['Review score', d.reviewScore ? d.reviewScore + ' / 5' : null],
+      ]),
+      opts: [...(d.basicOptions ?? []), ...(d.additionalOptions ?? [])].map(o => o.toLowerCase().replace(/_/g, ' ')),
+      tags: [], near: [], link: ['33m2', d.roomUrl],
+    },
+  };
+}
+
+function build33m2() {
+  const OUT = SITE + '/short', DIR = OUT + '/data/d';
+  const rooms = readJsonl('33m2_details.jsonl').map(from33m2);
+  assert.ok(rooms.length > 100, `only ${rooms.length} 33m2 rooms, not publishing`);
+  const stations = JSON.parse(fs.readFileSync('zigbang_subway.json', 'utf8')).filter(s => s.subway_area === '수도권' && s.lat);
+  const regions = [], regionIdx = new Map();
+  const regionOf = (province, district) => {
+    const prov = NAMES[province] ?? province, dist = (district ?? '?').split(' ')[0];
+    const key = prov + ' ' + dist;
+    if (!regionIdx.has(key)) { regionIdx.set(key, regions.length); regions.push({ key, province: prov, label: NAMES[dist] ? `${NAMES[dist]} ${dist}` : dist }); }
+    return regionIdx.get(key);
+  };
+  const rows = rooms.map(r => {
+    r.reg = regionOf(r.region[0], r.region[1]);
+    const [subM, sub] = nearestStation(r.lat, r.lng, stations);
+    r.detail.station = [`${stations[sub].name} (${stations[sub].description})`, metres(subM)];
+    return [r.key, r.cat, 1, r.deposit, r.rent, r.fee, r.m2, r.complex, r.dong, r.reg, r.floor, r.title, 0, 0, r.price, 0, null, r.photo, 0, 0, r.beds, subM, sub, 0, +r.lat.toFixed(5), +r.lng.toFixed(5)];
+  });
+  fs.rmSync(OUT, { recursive: true, force: true });
+  fs.mkdirSync(DIR, { recursive: true });
+  const shards = new Map();
+  for (const r of rooms) { const s = shard(r.key); if (!shards.has(s)) shards.set(s, {}); shards.get(s)[r.key] = { ...r.detail, also: 0 }; }
+  for (const [s, o] of shards) fs.writeFileSync(`${DIR}/${s}.json`, JSON.stringify(o));
+  const date = new Date(fs.statSync('33m2_details.jsonl').mtime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const foot = `${rows.length.toLocaleString('en-US')} short-term rentals (weekly stays) from 33m2. Prices are weekly on 33m2, shown here as monthly equivalents (weekly × 52/12) so you can compare them with the long-term tab; the deposit is refundable. 33m2 does not publish building age, so listings show without one. Usable size is the room's own m² from the listing. Distances are straight lines, not walking routes. Listings are a snapshot and may already be gone.`;
+  const data = { site: 'short', foot, date, rate: 5.5, penalty: AGE_PENALTY, regions, stations: stations.map(s => s.name), stationAt: stations.map(s => [+s.lat.toFixed(5), +s.lng.toFixed(5)]), rows };
+  const html = fs.readFileSync('dabang_finder.template.html', 'utf8').replace('__DATA__', () => JSON.stringify(data).replace(/</g, '\\u003c'));
+  fs.writeFileSync(OUT + '/index.html', html);
+  console.log({ short: rooms.length, regions: regions.length, shards: shards.size, kb: Math.round(html.length / 1024), date });
+  assert.strictEqual(rooms.filter(r => /01[016789][-. ]?\d{3,4}[-. ]?\d{4}/.test(r.detail.memo + r.title)).length, 0, 'phone numbers left in 33m2 descriptions');
+}
+
 function main() {
   if (process.argv.includes('--selftest')) return selftest();
+  if (process.argv.includes('--short')) return build33m2();
   const regionNames = JSON.parse(fs.readFileSync('dabang_regions.json', 'utf8'));
   const regions = [], regionIdx = new Map();
   const regionOf = (province, district) => {
@@ -275,6 +332,7 @@ function main() {
   console.log('worst', pool.slice(-3).map(r => `${r.price} ${r.m2}m² fee${r.fee} ${r.complex} ${(score(r) * 10).toFixed(1)}k`));
   console.log('tiny sizes', merged.filter(r => r.m2 < 10).length, 'huge fees', merged.filter(r => r.fee > 200).map(r => r.complex + ' ' + r.price).slice(0, 5));
   assert.strictEqual(merged.filter(r => /01[016789][-. ]?\d{3,4}[-. ]?\d{4}/.test(r.detail.memo)).length, 0, 'phone numbers left in descriptions');
+  if (fs.existsSync('33m2_details.jsonl')) build33m2(); // the Short term tab
 }
 
 main();
