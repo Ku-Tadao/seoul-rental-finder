@@ -289,35 +289,36 @@ export const median = (a: number[]) => {
   return s[s.length >> 1]
 }
 
-// What puts a listing above or below the median, for the badge's hover.
-export function whyText(x: X, rate: number, penalty: number) {
+// What puts a listing above or below the median, for the badge's hover: what's good, what's bad, and what to double-check.
+export type Why = { good: string[]; bad: string[]; notes: string[]; area: string }
+export function whyText(x: X, rate: number, penalty: number): Why {
   const r = x.r,
-    out: string[] = [],
+    good: string[] = [],
+    bad: string[] = [],
+    notes: string[] = [],
     { v: medV, e: medE, a: medA, age: medAge, name } = x.m!
   const k = S ? fx.U[0] : 1,
-    per = S ? "a " + fx.U[1] : "each month"
-  out.push(`${perM2(x.v * k)} ${S ? per : "a month"} per m² of usable space, against a median of ${perM2(medV * k)} for ${name} and the districts around it, among the listings your filters show.`)
-  const cmp = (v: number, m: number, hi: string, lo: string) => (m && v >= m * 1.15 ? hi : m && v <= m * 0.85 ? lo : null)
-  const pct = (a: number) => +((penalty * a) / 10).toFixed(1)
-  const why = [
-    cmp(r.m2, medA, `+ Bigger than most: ${sizeText(r)}, median ${Math.round(medA)} m²`, `− Smaller than most: ${sizeText(r)}, median ${Math.round(medA)} m²`),
-    cmp(x.e, medE, `− Costs more ${per} than most: ${money(x.e)}, median ${money(medE)}`, `+ Costs less ${per} than most: ${money(x.e)}, median ${money(medE)}`),
-    !penalty || S
-      ? null
-      : r.age === null
-        ? "+ Building age unknown, so no age penalty"
-        : medAge !== null && r.age <= medAge - 5
-          ? `+ Newer than most: ${ageShort(r.age)}, median ${medAge} yrs, so a smaller age penalty (+${pct(r.age)}%)`
-          : medAge !== null && r.age >= medAge + 5
-            ? `− Older than most: ${ageShort(r.age)}, median ${medAge} yrs, which adds +${pct(r.age)}%`
-            : null,
-  ].filter(Boolean) as string[]
-  out.push(...(why.length ? why : [S ? "· Close to the median on size and price" : "· Close to the median on size, monthly cost and age"]))
-  if (!S && r.dep && (r.dep * rate) / 1200 > x.e * 0.6) out.push(`· Most of the real cost is the deposit, counted at ${rate.toFixed(1)}% a year. A higher rate in “Adjust the formula” makes it look worse.`)
-  if (r.feeEst) out.push("· Maintenance is estimated from the district median")
-  if (r.sizeEst) out.push("· Usable size is estimated")
-  if (belowOf(x) >= 80) out.push("! Far cheaper than usual. Check the listing isn’t one room of a shared unit or a mistyped price.")
-  return out.join("\n")
+    per = S ? "a " + fx.U[1] : "a month"
+  const vs = (a: string, b: string) => `${a} vs ${b}`
+  ;(x.v <= medV ? good : bad).push(`${x.v <= medV ? "Cheaper" : "Pricier"} per m²: ${vs(perM2(x.v * k), perM2(medV * k))} ${per}`)
+  const cmp = (v: number, m: number, hi: [string[], string], lo: [string[], string], show: string) => {
+    if (!m) return
+    const [list, label] = v >= m * 1.15 ? hi : v <= m * 0.85 ? lo : [null, ""]
+    list?.push(`${label}: ${show}`)
+  }
+  cmp(r.m2, medA, [good, "Bigger than most"], [bad, "Smaller than most"], vs(sizeText(r), Math.round(medA) + " m²"))
+  cmp(x.e, medE, [bad, `Costs more ${per}`], [good, `Costs less ${per}`], vs(money(x.e), money(medE)))
+  if (penalty && !S) {
+    const pct = +((penalty * (r.age ?? 0)) / 10).toFixed(1)
+    if (r.age === null) good.push("Building age unknown, so no age penalty")
+    else if (medAge !== null && r.age <= medAge - 5) good.push(`Newer than most: ${vs(ageShort(r.age), medAge + " yrs")} (+${pct}% age penalty)`)
+    else if (medAge !== null && r.age >= medAge + 5) bad.push(`Older than most: ${vs(ageShort(r.age), medAge + " yrs")} (+${pct}% age penalty)`)
+  }
+  if (belowOf(x) >= 80) notes.push("Far cheaper than usual. Check it isn’t one room of a shared unit or a mistyped price.")
+  if (!S && r.dep && (r.dep * rate) / 1200 > x.e * 0.6) notes.push(`Most of the real cost is the deposit, counted at ${rate.toFixed(1)}% a year`)
+  if (r.feeEst) notes.push("Maintenance is estimated from the district median")
+  if (r.sizeEst) notes.push("Usable size is estimated")
+  return { good, bad, notes, area: name }
 }
 
 export const totalText = (x: X) => `${money(x.tot / 1e4)} total for ${stayText(fx.W)}${x.off ? `, ${x.off}% long-stay discount` : ""}`

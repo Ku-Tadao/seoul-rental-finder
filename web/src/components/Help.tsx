@@ -5,7 +5,7 @@ import { cn } from "cn"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 // Tap or hover help for Korean terms and figures. A small (i) marks anything that explains itself.
-export function Help({ text, children, className, icon = true, label }: { text: string; children?: ReactNode; className?: string; icon?: boolean; label?: string }) {
+export function Help({ text, children, className, icon = true, label }: { text: ReactNode; children?: ReactNode; className?: string; icon?: boolean; label?: string }) {
   return (
     <Popover>
       <PopoverTrigger openOnHover delay={100} aria-label={label} className={cn("inline-flex cursor-help items-center gap-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-sm", className)}>

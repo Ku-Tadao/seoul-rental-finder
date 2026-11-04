@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Help } from "@/components/Help"
 import { S, type Row } from "@/lib/data"
-import { badgeText, belowOf, shade, whyText, type X } from "@/lib/engine"
+import { badgeText, belowOf, shade, whyText, type Why, type X } from "@/lib/engine"
 import { HELP, dist, fx, metres, money, photoUrl, subText } from "@/lib/text"
 
 // Saved listings: which keys are starred, and the toggle. App provides it.
@@ -49,7 +49,7 @@ export function ValueBadge({ x, className }: { x: X; className?: string }) {
       </Badge>
     )
   return (
-    <Help text={whyText(x, fx.rate, fx.penalty)} icon={false} className={className}>
+    <Help text={<WhyList {...whyText(x, fx.rate, fx.penalty)} />} icon={false} className={className}>
       <Badge variant={shade(belowOf(x))} size="lg">
         {badgeText(x)}
       </Badge>
@@ -73,4 +73,32 @@ export function distLine(r: Row, pd: (number | null)[] = []) {
     parts.push(`${p.name} ${dist(pd[i] ?? metres(r.lat, r.lng, p.at))}`)
   })
   return parts.join(" · ")
+}
+
+const WHY: [keyof Omit<Why, "area">, string, string][] = [
+  ["good", "Good", "bg-value-3"],
+  ["bad", "Bad", "bg-destructive"],
+  ["notes", "Check", "bg-muted-foreground"],
+]
+function WhyList(w: Why) {
+  return (
+    <div className="flex flex-col gap-2.5 whitespace-normal">
+      {WHY.map(([k, title, dot]) =>
+        w[k].length ? (
+          <div key={k} className="flex flex-col gap-1">
+            <div className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{title}</div>
+            <ul className="flex flex-col gap-1">
+              {w[k].map((t) => (
+                <li key={t} className="flex gap-2">
+                  <span aria-hidden className={`mt-1.5 size-2 flex-none rounded-full ${dot}`} />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null,
+      )}
+      <div className="text-xs text-muted-foreground">Compared with listings in {w.area} and nearby districts that match your filters.</div>
+    </div>
+  )
 }
