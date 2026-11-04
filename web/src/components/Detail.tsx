@@ -25,7 +25,7 @@ function factRows(r: Row, d: D) {
   const bath = fact("Bathrooms"),
     rooms = fact("Rooms")
   const roomText = rooms == null ? "" : (ROOMS[rooms] ?? (/^\d+$/.test(rooms) ? rooms + (+rooms > 1 ? " rooms" : " room") : rooms))
-  add("Usable size", `${r.sizeEst ? "~" : ""}${r.m2} m² · ${pyeong(r.m2)}평`, HELP.pyeong)
+  add("Usable size", `${r.sizeEst ? "~" : ""}${+r.m2.toFixed(2)} m² · ${pyeong(r.m2)}평`, HELP.pyeong)
   for (const [k, v] of d.facts) {
     if (k === "Exclusive size" || k === "Rooms" || k === "Bathrooms") {
       if (k === "Rooms") add("Rooms and bathrooms", [roomText, bath && bath + (+bath > 1 ? " bathrooms" : " bathroom")].filter(Boolean).join(", "))
