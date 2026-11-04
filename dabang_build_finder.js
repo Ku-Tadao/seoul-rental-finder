@@ -239,6 +239,14 @@ function from33m2(d) {
   };
 }
 
+// The page is the web/ app's build (npm --prefix web run build) with the data inlined. Its scripts and styles go to _site/assets, shared by both tabs.
+function page(data, up) {
+  const html = fs.readFileSync('web/dist/index.html', 'utf8');
+  assert.ok(html.includes('__DATA__'), 'web/dist/index.html has no __DATA__ placeholder; build web/ first');
+  fs.cpSync('web/dist/assets', SITE + '/assets', { recursive: true });
+  return html.replaceAll('./assets/', up + 'assets/').replace('__DATA__', () => JSON.stringify(data).replace(/</g, '\\u003c'));
+}
+
 function build33m2() {
   const OUT = SITE + '/short', DIR = OUT + '/data/d';
   const rooms = readJsonl('33m2_details.jsonl').map(from33m2);
@@ -265,7 +273,7 @@ function build33m2() {
   const date = new Date(fs.statSync('33m2_details.jsonl').mtime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   const foot = `${rows.length.toLocaleString('en-US')} furnished short stays from 33m2, booked by the week. Prices include the long-stay discount for your stay length, the management fee and the one-off cleaning fee, so the price per night, week or month is what you actually pay. The deposit comes back when you leave and isn't counted. Usable size is the room's own m² from the listing. Distances are straight lines, not walking routes. Listings are a snapshot and may already be gone.`;
   const data = { site: 'short', foot, date, rate: 5.5, penalty: 0, regions, stations: stations.map(s => s.name), stationAt: stations.map(s => [+s.lat.toFixed(5), +s.lng.toFixed(5)]), rows };
-  const html = fs.readFileSync('dabang_finder.template.html', 'utf8').replace('__DATA__', () => JSON.stringify(data).replace(/</g, '\\u003c'));
+  const html = page(data, '../');
   fs.writeFileSync(OUT + '/index.html', html);
   console.log({ short: rooms.length, regions: regions.length, shards: shards.size, kb: Math.round(html.length / 1024), date });
   assert.strictEqual(rooms.filter(r => /01[016789][-. ]?\d{3,4}[-. ]?\d{4}/.test(r.detail.memo + r.title)).length, 0, 'phone numbers left in 33m2 descriptions');
@@ -323,7 +331,7 @@ function main() {
 
   const date = new Date(fs.statSync('dabang_details.jsonl').mtime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   const data = { short: fs.existsSync('33m2_details.jsonl'), date, rate: Math.round((rate ?? 5.5) * 10) / 10, penalty: AGE_PENALTY, regions, stations: stations.map(s => s.name), stationAt: stations.map(s => [+s.lat.toFixed(5), +s.lng.toFixed(5)]), rows };
-  const html = fs.readFileSync('dabang_finder.template.html', 'utf8').replace('__DATA__', () => JSON.stringify(data).replace(/</g, '\\u003c'));
+  const html = page(data, './');
   fs.writeFileSync(SITE + '/index.html', html);
 
   // Sanity output: what the default view ranks first, and anything suspicious.
