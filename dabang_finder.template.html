@@ -282,6 +282,10 @@ body:has(dialog[open]) { overflow: hidden; }
   <aside id="rail">
     <div class="ahead"><h2>Filters</h2><button class="plain" type="button" id="reset">Reset</button></div>
     <div id="secHome">
+      <section class="sec" data-sec="currency" data-title="Currency"><h3>Currency</h3>
+        <div class="pick" id="curs"></div>
+        <p class="note" id="curNote">Prices are in won, as listed.</p>
+      </section>
       <section class="sec" data-sec="budget" data-title="Budget"><h3>Budget</h3></section>
       <section class="sec" data-sec="area" data-title="Area"><h3>Area</h3>
         <input type="search" id="q" placeholder="Search name, neighbourhood, station" aria-label="Search listings">
@@ -325,7 +329,7 @@ body:has(dialog[open]) { overflow: hidden; }
       <div class="sort" id="sortBox">
         <select id="sort" hidden></select>
         <button class="sortbtn" id="sortBtn" type="button" popovertarget="sortMenu" aria-haspopup="listbox" aria-label="Sort listings"><span id="sortText"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="info" type="button" aria-label="How the ranking works" data-help="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing. Real monthly cost is rent, maintenance and what the locked-up deposit costs you each month.">
+        <button class="info" type="button" aria-label="How the ranking works" data-help="Ranked by real monthly cost per m² of usable space, with a penalty for older buildings, compared with the median listing in its district and the districts around it. Real monthly cost is rent, maintenance and what the locked-up deposit costs you each month.">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>
         </button>
       </div>
@@ -369,9 +373,23 @@ const DATA = JSON.parse(document.getElementById('data').textContent);
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 
-// Money is stored in 만원 (₩10,000), as both sites give it.
-const won = v => v >= 100 ? '₩' + (+(v / 100).toFixed(2)) + 'M' : '₩' + Math.round(v * 10) + 'k';
-const perM2 = v => '₩' + (v * 10).toFixed(1) + 'k';
+// Money is stored in 만원 (₩10,000), as both sites give it. Other currencies use the day's rate, fetched the first time one is picked.
+const CUR = { KRW: ['₩', 'Won'], EUR: ['€', 'Euro'], USD: ['$', 'US dollar'], RUB: ['₽', 'Russian rouble'], UAH: ['₴', 'Ukrainian hryvnia'] };
+let cur = 'KRW', rates = null, ratesLoading = null, rateNote = null;
+const shown$ = () => rates ? cur : 'KRW';
+const fx = v => v * 10000 * rates[cur.toLowerCase()];
+const money = v => {
+  if (shown$() === 'KRW') return v >= 100 ? '₩' + (+(v / 100).toFixed(2)) + 'M' : '₩' + Math.round(v * 10) + 'k';
+  const n = fx(v);
+  return CUR[cur][0] + (n >= 1e6 ? +(n / 1e6).toFixed(2) + 'M' : n >= 1e4 ? Math.round(n / 1000) + 'k' : Math.round(n).toLocaleString('en-US'));
+};
+const perM2 = v => { if (shown$() === 'KRW') return '₩' + (v * 10).toFixed(1) + 'k'; const n = fx(v); return CUR[cur][0] + n.toFixed(n < 10 ? 2 : n < 1000 ? 1 : 0); };
+function loadRates() {
+  return ratesLoading ??= fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/krw.min.json')
+    .then(res => { if (!res.ok) throw new Error(res.status); return res.json(); })
+    .then(j => { rates = j.krw; rateNote = `Converted at the rate of ${koDate(j.date.replace(/-/g, '.'))}. Listings are priced in won, so other currencies are approximate.`; })
+    .catch(() => { rateNote = "Couldn't load exchange rates, so prices stay in won. Reload the page to try again."; }); // no retry here, or a failed fetch would loop through update()
+}
 const dist = m => m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m) + ' m';
 const seq = (a, b, s) => { const o = []; for (let i = a; i <= b; i += s) o.push(i); return o; };
 const ANY = Infinity;
@@ -434,15 +452,15 @@ const lineText = s => s.split(',').map(l => LINES[l] ?? l.replace(/^(\d+)호선$
 const floorText = f => f === '저층' ? 'Low floor' : f === '중층' ? 'Mid floor' : f === '고층' ? 'High floor' : /^\d+층$/.test(f) ? 'Floor ' + parseInt(f) : f === '-' ? '' : f;
 const koDate = s => { const m = String(s).match(/^(\d{4})\.?\s*(\d{1,2})(?:\.(\d{1,2}))?/) ; if (!m) return s; const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m[2] - 1]; return (m[3] ? +m[3] + ' ' : '') + mon + ' ' + m[1]; };
 const moneyKo = s => { const [a, b] = String(s).split('/'); const f = x => x.replace(/억(\d+)/, (_, n) => '억 ' + (+n).toLocaleString('en-US')).replace(/^(\d+)$/, (_, n) => (+n).toLocaleString('en-US')) + (/억$/.test(x) ? '원' : '만원'); return b ? f(a) + ' / ' + f(b) : f(a); };
-const loanText = v => { const m = String(v).match(/^(?:(\d+)억)?(\d*)$/); return m ? won((+m[1] || 0) * 10000 + (+m[2] || 0)) : /30%\s*미만/.test(v) ? 'Under 30% of market value' : /30%\s*이상/.test(v) ? '30% or more of market value' : v; };
+const loanText = v => { const m = String(v).match(/^(?:(\d+)억)?(\d*)$/); return m ? money((+m[1] || 0) * 10000 + (+m[2] || 0)) : /30%\s*미만/.test(v) ? 'Under 30% of market value' : /30%\s*이상/.test(v) ? '30% or more of market value' : v; };
 const helpBtn = (cls, text, help) => `<button class="${cls}" type="button" data-help="${esc(help)}">${esc(text)}</button>`;
 
 // Filters: each slider lives in a section, shown in the sidebar on desktop and in a bottom sheet on phones.
 const SLIDERS = {
-  deposit: { box: 'budget', label: 'Max deposit', help: HELP.deposit, fmt: anyOr(won), def: ANY, steps: [0, 100, 300, 500, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 70000, 100000, ANY] },
-  rent: { box: 'budget', label: 'Max monthly rent', help: HELP.rent, fmt: anyOr(won), def: ANY, steps: [0, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 400, 500, 700, 1000, ANY] },
-  fee: { box: 'budget', label: 'Max maintenance', help: HELP.fee, fmt: anyOr(won), def: ANY, steps: [0, 5, 10, 15, 20, 25, 30, 40, 50, 70, 100, ANY] },
-  total: { box: 'budget', label: 'Max real monthly cost', help: HELP.total, fmt: anyOr(won), def: ANY, steps: [30, 50, 70, 80, 90, 100, 120, 140, 160, 180, 200, 250, 300, 400, 500, 700, 1000, ANY] },
+  deposit: { box: 'budget', label: 'Max deposit', help: HELP.deposit, fmt: anyOr(money), def: ANY, steps: [0, 100, 300, 500, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 70000, 100000, ANY] },
+  rent: { box: 'budget', label: 'Max monthly rent', help: HELP.rent, fmt: anyOr(money), def: ANY, steps: [0, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 400, 500, 700, 1000, ANY] },
+  fee: { box: 'budget', label: 'Max maintenance', help: HELP.fee, fmt: anyOr(money), def: ANY, steps: [0, 5, 10, 15, 20, 25, 30, 40, 50, 70, 100, ANY] },
+  total: { box: 'budget', label: 'Max real monthly cost', help: HELP.total, fmt: anyOr(money), def: ANY, steps: [30, 50, 70, 80, 90, 100, 120, 140, 160, 180, 200, 250, 300, 400, 500, 700, 1000, ANY] },
   minA: { box: 'size', label: 'Min usable size', help: HELP.pyeong, fmt: v => v + ' m² · ' + Math.round(v / 3.3058) + '평', def: 0, steps: seq(0, 150, 5) },
   maxA: { box: 'size', label: 'Max usable size', help: HELP.pyeong, fmt: anyOr(v => v + ' m² · ' + Math.round(v / 3.3058) + '평'), def: ANY, steps: [...seq(10, 150, 5), 175, 200, ANY] },
   beds: { box: 'rooms', label: 'Min rooms', fmt: v => v ? v + '+' : 'Any', def: 0, steps: [0, 1, 2, 3, 4] },
@@ -466,7 +484,8 @@ const setVal = (k, v) => { const s = SLIDERS[k]; let i = s.steps.indexOf(v); if 
 
 $('types').innerHTML = [['apt', 'Apartments'], ['off', 'Officetels'], ['jeonse', 'Jeonse 전세'], ['monthly', 'Wolse 월세']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
-$('sources').innerHTML = [['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
+$('curs').innerHTML = Object.entries(CUR).map(([c, [s, name]]) => `<label title="${name}"><input type="radio" name="cur" id="cur_${c}" value="${c}"${c === 'KRW' ? ' checked' : ''}> ${s} ${c}</label>`).join('');
+$('sources').innerHTML =[['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
 
 // Row: [key (d: Dabang, z: Zigbang), category 0 apt/1 officetel, deal 0 jeonse/1 monthly, deposit, rent, fee, usable m², complex, dong, region index, floor, title, short, lh, price text, partial, building age|null, photo|null, fee estimated, size estimated, rooms|null, metres to nearest station, station index, on both sites, lat, lng]
@@ -502,7 +521,7 @@ function resetAll() { ALL_SECS.forEach(resetSection); $('sort').value = 'v'; }
 const STORE = 'finder-filters-v2';
 function saveState() {
   try {
-    localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value, p: places }));
+    localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value, p: places, u: cur }));
   } catch {}
 }
 function loadState() {
@@ -516,13 +535,66 @@ function loadState() {
     areaBoxes.forEach(b => b.checked = st.a.includes(DATA.regions[+b.dataset.reg].key));
     $('q').value = st.q;
     $('sort').value = st.o;
+    if (CUR[st.u]) $('cur_' + st.u).checked = true;
     if (!$('sort').value) $('sort').value = 'v';
   } catch {}
 }
 
 const median = a => { if (!a.length) return null; const s = Float64Array.from(a).sort(); return s[s.length >> 1]; };
 const isLow = f => f === '저층' || (/^\d+층$/.test(f) && parseInt(f) <= 2);
-let shown = 0, results = [], medV = null, medE = null, medA = null, medAge = null, view = 'list';
+let shown = 0, results = [], MED = [], view = 'list';
+
+// Each district is compared with itself and its surroundings: 60% its own listings, 30% the districts bordering it,
+// 10% the ones bordering those. A district with few listings leans more on its neighbours.
+// Borders aren't in the data, so two districts count as neighbours where their listings sit within about 600 m of each other.
+const RINGS = (() => {
+  const cells = new Map(), pairs = new Map(), at = DATA.regions.map(() => [0, 0, 0]);
+  for (const r of ROWS) if (r.lat != null) {
+    const k = Math.floor(r.lat / .006) + ',' + Math.floor(r.lng / .0075);
+    (cells.get(k) ?? cells.set(k, new Set()).get(k)).add(r.reg);
+    at[r.reg][0] += r.lat; at[r.reg][1] += r.lng; at[r.reg][2]++;
+  }
+  for (const [k, ds] of cells) {
+    const [a, b] = k.split(',').map(Number);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const y of cells.get(a + i + ',' + (b + j)) ?? []) for (const x of ds)
+      if (x < y) pairs.set(x * 1000 + y, (pairs.get(x * 1000 + y) ?? 0) + 1);
+  }
+  const adj = DATA.regions.map(() => new Set()), link = (x, y) => { adj[x].add(y); adj[y].add(x); };
+  for (const [p, n] of pairs) if (n >= 3) link(Math.floor(p / 1000), p % 1000); // 3+ touching cells, so one misplaced pin doesn't make a border
+  // A district with no detected border (few listings, or a gap of farmland) borrows its two nearest by centre.
+  const c = at.map(([la, ln, n]) => n ? [la / n, ln / n] : null);
+  c.forEach((p, s) => { if (p && !adj[s].size) c.map((q, d) => [d, q && d !== s ? (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2 : Infinity]).sort((a, b) => a[1] - b[1]).slice(0, 2).forEach(([d]) => link(s, d)); });
+  return adj.map((one, s) => {
+    const two = new Set();
+    for (const n of one) for (const m of adj[n]) if (m !== s && !one.has(m)) two.add(m);
+    return [[s], [...one], [...two]];
+  });
+})();
+const upTo = (a, t) => { let l = 0, h = a.length; while (l < h) { const m = (l + h) >> 1; if (a[m] <= t) l = m + 1; else h = m; } return l; };
+// Weighted median over a district's rings, given each district's values sorted. Found by bisecting on the value.
+function ringMedian(rings, sorted) {
+  const n = rings.map(ds => ds.reduce((t, d) => t + sorted[d].length, 0));
+  const share = [.6 * n[0] / (n[0] + 20), .3, .1].map((w, i) => n[i] ? w / n[i] : 0);
+  const parts = rings.flatMap((ds, i) => share[i] ? ds.map(d => [sorted[d], share[i]]) : []);
+  if (!parts.length) return null;
+  let lo = Infinity, hi = -Infinity, total = 0;
+  for (const [a, w] of parts) if (a.length) { lo = Math.min(lo, a[0]); hi = Math.max(hi, a[a.length - 1]); total += w * a.length; }
+  for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (parts.reduce((t, [a, w]) => t + w * upTo(a, mid), 0) >= total / 2) hi = mid; else lo = mid; }
+  return hi;
+}
+function districtMedians(xs) {
+  const by = DATA.regions.map(() => []);
+  for (const x of xs) by[x.r.reg].push(x);
+  const col = f => by.map(g => Float64Array.from(g.map(f).filter(v => v != null)).sort());
+  const v = col(x => x.v), e = col(x => x.e), a = col(x => x.a), age = col(x => x.r.age);
+  return RINGS.map((rings, s) => {
+    const mv = ringMedian(rings, v);
+    if (mv === null) return null;
+    const ma = ringMedian(rings, age);
+    return { v: mv, e: ringMedian(rings, e), a: ringMedian(rings, a), age: ma === null ? null : Math.round(ma), name: districtText(DATA.regions[s].label) };
+  });
+}
+const medOf = x => MED[x.r.reg] ?? null;
 const PAGE = 60;
 
 function score(r, rate = val('rate'), penalty = val('penalty')) {
@@ -559,8 +631,9 @@ function compute() {
     for (let i = 0; i < 2; i++) if (ps[i] && r.lat != null) { x.pd[i] = metres(r.lat, r.lng, ps[i].at); if (x.pd[i] > max[i]) continue rows; }
     out.push(x);
   }
+  MED = districtMedians(out); // before sorting: best value is measured against each district's median
   const sort = $('sort').value;
-  const by = { v: x => x.v, e: x => x.e, a: x => -x.a, d: x => x.r.dep, n: x => x.r.age ?? 99, p0: x => x.pd[0] ?? Infinity, p1: x => x.pd[1] ?? Infinity }[sort];
+  const by = { v: x => x.v / (medOf(x)?.v ?? 1), e: x => x.e, a: x => -x.a, d: x => x.r.dep, n: x => x.r.age ?? 99, p0: x => x.pd[0] ?? Infinity, p1: x => x.pd[1] ?? Infinity }[sort];
   out.sort((x, y) => by(x) - by(y) || x.v - y.v);
   return out;
 }
@@ -569,16 +642,16 @@ const STAR = s => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidd
 const favBtn = (key, cls, size) => `<button class="${cls}" type="button" data-fav="${esc(key)}" aria-pressed="${favs.has(key)}" aria-label="Save this listing">${STAR(size)}</button>`;
 const photoUrl = r => r.key[0] === 'd' ? 'https://d1774jszgerdmk.cloudfront.net/512/' + r.photo : 'https://ic.zigbang.com/' + r.photo + '?w=400';
 const photoTag = r => r.photo ? `<img src="${esc(photoUrl(r))}" alt="${esc(r.complex)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo on this listing')">` : 'No photo on this listing';
-const belowOf = v => Math.round((1 - v / medV) * 100);
+const belowOf = x => Math.round((1 - x.v / medOf(x).v) * 100);
 const shade = b => b >= 60 ? 'g3' : b >= 30 ? 'g2' : b >= 0 ? 'g1' : 'above';
 // What puts a listing above or below the median, for the badge's hover.
 function whyText(x) {
-  const r = x.r, penalty = val('penalty'), rate = val('rate'), out = [];
-  out.push(`${perM2(x.v)} a month per m² of usable space, against a median of ${perM2(medV)} for the ${results.length.toLocaleString('en-US')} listings your filters show.`);
+  const r = x.r, penalty = val('penalty'), rate = val('rate'), out = [], { v: medV, e: medE, a: medA, age: medAge, name } = medOf(x);
+  out.push(`${perM2(x.v)} a month per m² of usable space, against a median of ${perM2(medV)} for ${name} and the districts around it, among the listings your filters show.`);
   const cmp = (v, m, hi, lo) => m && v >= m * 1.15 ? hi : m && v <= m * .85 ? lo : null;
   const why = [
     cmp(r.m2, medA, `+ Bigger than most: ${sizeText(r)}, median ${Math.round(medA)} m²`, `− Smaller than most: ${sizeText(r)}, median ${Math.round(medA)} m²`),
-    cmp(x.e, medE, `− Costs more each month than most: ${won(x.e)}, median ${won(medE)}`, `+ Costs less each month than most: ${won(x.e)}, median ${won(medE)}`),
+    cmp(x.e, medE, `− Costs more each month than most: ${money(x.e)}, median ${money(medE)}`, `+ Costs less each month than most: ${money(x.e)}, median ${money(medE)}`),
     !penalty ? null : r.age === null ? '+ Building age unknown, so no age penalty'
       : medAge !== null && r.age <= medAge - 5 ? `+ Newer than most: ${ageShort(r.age)}, median ${medAge} yrs, so a smaller age penalty (+${+(penalty * r.age / 10).toFixed(1)}%)`
       : medAge !== null && r.age >= medAge + 5 ? `− Older than most: ${ageShort(r.age)}, median ${medAge} yrs, which adds +${+(penalty * r.age / 10).toFixed(1)}%` : null,
@@ -587,14 +660,14 @@ function whyText(x) {
   if (r.dep && r.dep * rate / 1200 > x.e * .6) out.push(`· Most of the real cost is the deposit, counted at ${rate.toFixed(1)}% a year. A higher rate in “Adjust the formula” makes it look worse.`);
   if (r.feeEst) out.push('· Maintenance is estimated from the district median');
   if (r.sizeEst) out.push('· Usable size is estimated');
-  if (belowOf(x.v) >= 80) out.push('! Far cheaper than usual. Check the listing isn’t one room of a shared unit or a mistyped price.');
+  if (belowOf(x) >= 80) out.push('! Far cheaper than usual. Check the listing isn’t one room of a shared unit or a mistyped price.');
   return out.join('\n');
 }
-const badge = x => medV === null ? '<span class="badge none">Not compared</span>'
-  : `<span class="badge ${shade(belowOf(x.v))}" tabindex="0" data-help="${esc(whyText(x))}">${badgeText(x.v)}</span>`;
+const badge = x => !medOf(x) ? '<span class="badge none">Not compared</span>'
+  : `<span class="badge ${shade(belowOf(x))}" tabindex="0" data-help="${esc(whyText(x))}">${badgeText(x)}</span>`;
 const termBtn = r => helpBtn('term', r.deal ? 'Wolse' : 'Jeonse', r.deal ? HELP.wolse : HELP.jeonse);
-const priceText = r => r.deal ? won(r.rent) + '/mo' : won(r.dep);
-const depSmall = r => r.deal ? `<small>${r.dep ? '+ ' + won(r.dep) + ' deposit' : 'no deposit'}</small>` : '';
+const priceText = r => r.deal ? money(r.rent) + '/mo' : money(r.dep);
+const depSmall = r => r.deal ? `<small>${r.dep ? '+ ' + money(r.dep) + ' deposit' : 'no deposit'}</small>` : '';
 const ageShort = a => a === null ? '' : a === 0 ? 'new build' : a === 1 ? '1 yr old' : a + ' yrs old';
 const typeText = r => r.cat ? 'Officetel' : 'Apartment';
 const sizeText = r => `${r.sizeEst ? '~' : ''}${Math.round(r.m2)} m²`;
@@ -615,7 +688,7 @@ function cardHtml(x, gone) {
     ${favBtn(r.key, 'star', 22)}
     <div class="cbody">
       <div class="line1">${gone ? (r.deal ? 'Wolse' : 'Jeonse') : termBtn(r)} <span>${priceText(r)}</span> ${depSmall(r)}</div>
-      <div class="real">Real cost ${won(x.e)} a month</div>
+      <div class="real">Real cost ${money(x.e)} a month</div>
       <div class="ttl">${esc(r.complex)}</div>
       <div class="meta">${esc(areaText(r))}<br>${esc(facts)}<br>${esc(distLine(r, x.pd))}${flags ? '<br>' + esc(flags) : ''}</div>
     </div>
@@ -650,13 +723,13 @@ function factRows(r, d) {
     else if (k === 'Loan') add('Existing loan', loanText(v), /미만/.test(v) ? null : HELP.loan);
     else if (k === 'Fee covers') add(k, String(v).split(', ').map(x => COVERS[x] ?? x).join(', ').replace(/^./, m => m.toUpperCase()));
     else if (k === 'Move in') add(k, /즉시/.test(v) ? (/협의/.test(v) ? 'Immediately, negotiable' : 'Immediately') : /협의/.test(v) ? 'Negotiable' : koDate(v));
-    else if (k === 'Maintenance') add(k, r.feeEst ? `about ${won(r.fee)} a month (estimated)` : r.fee ? won(r.fee) + ' a month' : 'None', HELP.fee);
+    else if (k === 'Maintenance') add(k, r.feeEst ? `about ${money(r.fee)} a month (estimated)` : r.fee ? money(r.fee) + ' a month' : 'None', HELP.fee);
     else if (k === 'Approved') add('Building approved', koDate(v).replace(/^\d+ /, ''));
     else if (k === 'Posted') add(k, koDate(v));
     else add(k, String(v));
   }
   if (!d.facts.some(f => f[0] === 'Rooms') && bath) add('Bathrooms', bath);
-  if (!d.facts.some(f => f[0] === 'Maintenance')) add('Maintenance', r.feeEst ? `about ${won(r.fee)} a month (estimated)` : won(r.fee) + ' a month', HELP.fee);
+  if (!d.facts.some(f => f[0] === 'Maintenance')) add('Maintenance', r.feeEst ? `about ${money(r.fee)} a month (estimated)` : money(r.fee) + ' a month', HELP.fee);
   return out;
 }
 
@@ -665,17 +738,17 @@ function detailHtml(r, d) {
   const pen = penalty * (r.age ?? 0) / 10;
   const raw = x.e / r.m2;
   const how = [
-    r.rent ? [`Monthly rent`, won(r.rent)] : null,
-    r.dep ? [`Deposit, ${won(r.dep)} at ${rate.toFixed(1)}% a year`, won(r.dep * rate / 100 / 12)] : null,
-    [r.feeEst ? 'Maintenance (estimated)' : 'Maintenance', r.fee ? won(r.fee) : '₩0'],
-    ['<b>Real monthly cost</b>', `<b>${won(x.e)}</b>`],
+    r.rent ? [`Monthly rent`, money(r.rent)] : null,
+    r.dep ? [`Deposit, ${money(r.dep)} at ${rate.toFixed(1)}% a year`, money(r.dep * rate / 100 / 12)] : null,
+    [r.feeEst ? 'Maintenance (estimated)' : 'Maintenance', r.fee ? money(r.fee) : '₩0'],
+    ['<b>Real monthly cost</b>', `<b>${money(x.e)}</b>`],
     [`Per m² of usable space (${sizeText(r)})`, perM2(raw)],
     r.age === null ? ['Building age unknown, no penalty', perM2(x.v)] : pen ? [`With ${r.age}-year-old building penalty, +${+pen.toFixed(1)}%`, perM2(x.v)] : null,
-    medV !== null ? ['<b>Median listing</b>', `<b>${perM2(medV)}</b>`] : null,
+    medOf(x) ? [`<b>Median listing in ${medOf(x).name} and around</b>`, `<b>${perM2(medOf(x).v)}</b>`] : null,
   ].filter(Boolean).map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   const head = `<section class="dsec dhead">${badge(x)}
       <div class="bigprice">${termBtn(r).replace('class="term"', 'class="term" style="z-index:0"')} <span id="dTitle" title="${esc(moneyKo(r.price))}">${priceText(r)}</span> ${depSmall(r)}</div>
-      <div class="bigreal">Real cost ${won(x.e)} a month</div>
+      <div class="bigreal">Real cost ${money(x.e)} a month</div>
       <div class="muted">${esc(areaText(r))} · ${typeText(r)}</div>
       <details class="how"><summary>How this is worked out</summary><div class="pairs">${how}</div></details>
     </section>`;
@@ -854,8 +927,8 @@ function paintSaved() {
   $('share').hidden = !items.some(i => !i.gone);
   $('list').innerHTML = items.length ? items.map(i => cardHtml(i.x, i.gone)).join('') : '<div class="empty">Nothing saved yet. Tap the star on a listing to keep it here.</div>';
   const rows = [
-    ['Price', ({ x: { r } }) => `<b>${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</b>${r.deal ? `<small>${r.dep ? won(r.dep) + ' deposit' : 'No deposit'}</small>` : ''}`],
-    ['Real monthly cost', ({ x }) => `<b>${won(x.e)}</b><small>Real monthly cost</small>`],
+    ['Price', ({ x: { r } }) => `<b>${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</b>${r.deal ? `<small>${r.dep ? money(r.dep) + ' deposit' : 'No deposit'}</small>` : ''}`],
+    ['Real monthly cost', ({ x }) => `<b>${money(x.e)}</b><small>Real monthly cost</small>`],
     ['Size', ({ x: { r } }) => `${sizeText(r)} · ${Math.round(r.m2 / 3.3058)}평${roomsText(r) ? ' · ' + roomsText(r) : ''}<small>Usable size</small>`],
     ['Age', ({ x: { r } }) => `${r.age === null ? 'Unknown' : r.age === 0 ? 'New build' : r.age + (r.age > 1 ? ' years old' : ' year old')}<small>Building age</small>`],
     ['Subway', ({ x: { r } }) => `${esc(subText(r))} ${dist(r.subM)}<small>Nearest subway</small>`],
@@ -877,13 +950,13 @@ function miniHtml(x) {
   const r = x.r;
   return `<div class="mrow"><div class="mphoto">${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
     <a class="open" href="#${esc(r.key)}" aria-label="Open ${esc(r.complex)}"></a>
-    <div class="cbody"><div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${won(x.e)} a month</div><div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x.v))} · ${sizeText(r)}</div></div></div>`;
+    <div class="cbody"><div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${money(x.e)} a month</div><div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x))} · ${sizeText(r)}</div></div></div>`;
 }
 const tileIcon = (x, n) => L.divIcon({
-  className: 'tile' + (medV !== null ? ' ' + shade(belowOf(x.v)) : ''), iconSize: [84, 84], iconAnchor: [42, 91],
+  className: 'tile' + (medOf(x) ? ' ' + shade(belowOf(x)) : ''), iconSize: [84, 84], iconAnchor: [42, 91],
   html: `<div class="tphoto">${x.r.photo ? `<img src="${esc(photoUrl(x.r))}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div><div class="tprice">${priceText(x.r)}</div>${n > 1 ? `<span class="tcount">${n}</span>` : ''}`,
 });
-const badgeText = v => { const b = medV === null ? 0 : Math.round((1 - v / medV) * 100); return b > 0 ? b + '% below median' : b < 0 ? -b + '% above median' : 'At the median'; };
+const badgeText = x => { const b = medOf(x) ? belowOf(x) : 0; return b > 0 ? b + '% below median' : b < 0 ? -b + '% above median' : 'At the median'; };
 function paintMap(fit) {
   if (!map || !mapStale) return;
   mapStale = false;
@@ -899,7 +972,7 @@ function paintMap(fit) {
     xs.sort((a, b) => a.v - b.v);
     const best = xs.find(x => x.r.photo) ?? xs[0], m = L.marker([best.r.lat, best.r.lng], { icon: tileIcon(best, xs.length), title: best.r.complex, alt: best.r.complex, riseOnHover: true });
     m.listings = xs.length;
-    m.med = median(xs.map(x => x.v));
+    m.below = median(xs.filter(medOf).map(belowOf));
     m.on('click', () => {
       if (xs.length === 1) { location.hash = best.r.key; return; }
       $('mini').innerHTML = `<div class="mhead">${xs.length} listings here, best value first</div>` + xs.map(miniHtml).join('');
@@ -922,7 +995,7 @@ async function openMap() {
       chunkedLoading: true, showCoverageOnHover: false, spiderfyDistanceMultiplier: 3.5,
       maxClusterRadius: z => z >= 17 ? 40 : 70, // about a tile wide, tighter close in so buildings show where they are
       // Sized by how many listings it holds, coloured by how its typical building compares with the median.
-      iconCreateFunction: c => { const ms = c.getAllChildMarkers(), n = ms.reduce((sum, m) => sum + m.listings, 0), s = Math.round(28 + 10 * Math.log10(n)); return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster' + (medV !== null ? ' ' + shade(belowOf(median(ms.map(m => m.med)))) : ''), iconSize: [s, s] }); },
+      iconCreateFunction: c => { const ms = c.getAllChildMarkers(), n = ms.reduce((sum, m) => sum + m.listings, 0), s = Math.round(28 + 10 * Math.log10(n)); return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster' + (MED.some(Boolean) ? ' ' + shade(median(ms.map(m => m.below).filter(b => b !== null))) : ''), iconSize: [s, s] }); },
     });
     map.addLayer(cluster);
     map.on('click', () => { $('mini').hidden = true; });
@@ -963,7 +1036,7 @@ function setView(v) {
 // Chips show the current value of each filter.
 function chipText() {
   const lim = (k, f) => val(k) === SLIDERS[k].def ? null : f(val(k));
-  const budget = lim('total', v => '≤ ' + won(v)) ?? lim('rent', v => won(v) + '/mo') ?? lim('deposit', v => '≤ ' + won(v) + ' dep.') ?? lim('fee', v => 'fee ≤ ' + won(v));
+  const budget = lim('total', v => '≤ ' + money(v)) ?? lim('rent', v => money(v) + '/mo') ?? lim('deposit', v => '≤ ' + money(v) + ' dep.') ?? lim('fee', v => 'fee ≤ ' + money(v));
   const on = areaBoxes.filter(b => b.checked);
   const provs = Object.keys(groups).filter(p => regionsOf(p).every(b => b.checked));
   const area = $('q').value.trim() ? '“' + $('q').value.trim() + '”' : !on.length ? null : provs.length === 1 && on.length === regionsOf(provs[0]).length ? provs[0] : on.length === 1 ? districtText(DATA.regions[+on[0].dataset.reg].label) : on.length + ' districts';
@@ -976,6 +1049,7 @@ function chipText() {
     ['age', 'Age', val('maxAge') === ANY ? 'Any' : '≤ ' + val('maxAge') + ' yrs', val('maxAge') !== 30],
     ['places', 'Places', places.length ? places.map(stationName).join(', ') : null],
     ['more', 'More', off || null],
+    ['currency', 'Currency', CUR[cur][0] + ' ' + cur, cur !== 'KRW'],
   ];
 }
 function paintChips() {
@@ -1089,11 +1163,10 @@ $('areas').addEventListener('click', e => {
 
 function update() {
   for (const k of Object.keys(SLIDERS)) $('o_' + k).textContent = SLIDERS[k].fmt(val(k));
+  cur = document.querySelector('[name=cur]:checked')?.value ?? 'KRW';
+  if (cur !== 'KRW' && !ratesLoading) loadRates().then(update);
+  $('curNote').textContent = cur === 'KRW' ? 'Prices are in won, as listed.' : rateNote ?? 'Loading exchange rates…';
   results = compute();
-  medV = median(results.map(x => x.v));
-  medE = median(results.map(x => x.e));
-  medA = median(results.map(x => x.a));
-  medAge = median(results.filter(x => x.r.age !== null).map(x => x.r.age));
   shown = 0;
   $('sortText').textContent = $('sort').selectedOptions[0]?.textContent ?? '';
   paintCount();
