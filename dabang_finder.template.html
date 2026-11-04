@@ -83,6 +83,7 @@ main { display: grid; gap: 12px; min-width: 0; }
 .cbody { display: flex; flex-direction: column; gap: 6px; padding: 14px; min-width: 0; }
 .line1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
 .line1 small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.line1 .rating { margin-left: auto; font-size: 14px; font-weight: 500; letter-spacing: 0; white-space: nowrap; }
 .term { position: relative; z-index: 2; padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit; cursor: help; }
 /* A small (i) marks anything that explains itself on hover or tap. */
 .term::after, .fact button.v::after, .ctl label[data-help]::after { content: ''; display: inline-block; width: 13px; height: 13px; margin-left: 4px; vertical-align: -1px; background: var(--muted); -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
@@ -290,6 +291,11 @@ body:has(dialog[open]) { overflow: hidden; }
         <div class="pick" id="curs"></div>
         <p class="note" id="curNote">Prices are in won, as listed.</p>
       </section>
+      <section class="sec" data-sec="stay" data-title="Your stay" hidden><h3>Your stay</h3>
+        <div class="pick" id="stays"></div>
+        <p class="note">Show prices per</p>
+        <div class="pick" id="units"></div>
+      </section>
       <section class="sec" data-sec="budget" data-title="Budget"><h3>Budget</h3></section>
       <section class="sec" data-sec="area" data-title="Area"><h3>Area</h3>
         <input type="search" id="q" placeholder="Search name, neighbourhood, station" aria-label="Search listings">
@@ -310,11 +316,13 @@ body:has(dialog[open]) { overflow: hidden; }
         <div class="pick" id="types"></div>
         <div class="pick" id="sources"></div>
         <label class="check"><input type="checkbox" id="hideLow"> Hide low floors (저층, 1st and 2nd)</label>
+        <div id="longChecks" class="sec">
         <label class="check"><input type="checkbox" id="unknownFee"> Listings with no maintenance figure (estimated from the district median)</label>
         <label class="check"><input type="checkbox" id="unknownAge"> Listings with unknown building age (no age penalty)</label>
         <label class="check"><input type="checkbox" id="partial"> Single rooms in a shared or split unit (their size is misleading)</label>
         <label class="check"><input type="checkbox" id="shortTerm"> Short-term rentals (단기)</label>
         <label class="check"><input type="checkbox" id="lh"> LH public housing (has eligibility rules)</label>
+        </div>
         <details id="formula">
           <summary style="font-weight:600;cursor:pointer;min-height:28px">Adjust the formula</summary>
           <div class="sec" id="knobs" style="margin-top:12px"></div>
@@ -459,9 +467,21 @@ const moneyKo = s => { const [a, b] = String(s).split('/'); const f = x => x.rep
 const loanText = v => { const m = String(v).match(/^(?:(\d+)억)?(\d*)$/); return m ? money((+m[1] || 0) * 10000 + (+m[2] || 0)) : /30%\s*미만/.test(v) ? 'Under 30% of market value' : /30%\s*이상/.test(v) ? '30% or more of market value' : v; };
 const helpBtn = (cls, text, help) => `<button class="${cls}" type="button" data-help="${esc(help)}">${esc(text)}</button>`;
 
+// Short term (33m2) prices a stay, not a month: the total for the chosen length with its discount and fees, shown per night, week or month.
+const S = DATA.site === 'short';
+const STAYS = [[1, '1 week'], [2, '2 weeks'], [4, '1 month'], [8, '2 months'], [12, '3 months']];
+const UNITS = [[1, 'night'], [7, 'week'], [28, 'month']]; // 33m2 counts a month as 4 weeks
+let W = 1, U = UNITS[0]; // stay in weeks, price unit [days, word]; set in update()
+const stayText = w => STAYS.find(s => s[0] === w)?.[1] ?? w + ' weeks';
+const won = v => money(v / 1e4);
+const PTYPES = { OFFICETEL: 'Officetel', STUDIO: 'Studio', APARTMENT: 'Apartment', VILLA: 'Villa', DETACHED: 'House', MIXED_USE: 'Mixed-use building', GOSIWON: 'Gosiwon', SHARE_HOUSE: 'Share house' };
+const rateText = r => r.rating ? `★ ${r.rating.toFixed(2)} (${r.nRev})` : '★ New';
+const totalText = x => `${won(x.tot)} total for ${stayText(W)}${x.off ? `, ${x.off}% long-stay discount` : ''}`;
+
 // Filters: each slider lives in a section, shown in the sidebar on desktop and in a bottom sheet on phones.
 const SLIDERS = {
-  deposit: { box: 'budget', label: 'Max deposit', help: HELP.deposit, fmt: anyOr(money), def: ANY, steps: [0, 100, 300, 500, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 70000, 100000, ANY] },
+  ...(S && { price: { box: 'budget', label: 'Max price per night', fmt: anyOr(v => money(v * U[0])), def: ANY, steps: [1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 10, 15, 20, ANY] } }), // 만원 a night
+  deposit: { box: 'budget', label: 'Max deposit', help: HELP.deposit, fmt: anyOr(money), def: ANY, steps: S ? [0, 10, 20, 30, 50, 70, 100, 200, ANY] : [0, 100, 300, 500, 1000, 2000, 3000, 5000, 7000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 70000, 100000, ANY] },
   rent: { box: 'budget', label: 'Max monthly rent', help: HELP.rent, fmt: anyOr(money), def: ANY, steps: [0, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 400, 500, 700, 1000, ANY] },
   fee: { box: 'budget', label: 'Max maintenance', help: HELP.fee, fmt: anyOr(money), def: ANY, steps: [0, 5, 10, 15, 20, 25, 30, 40, 50, 70, 100, ANY] },
   total: { box: 'budget', label: 'Max real monthly cost', help: HELP.total, fmt: anyOr(money), def: ANY, steps: [30, 50, 70, 80, 90, 100, 120, 140, 160, 180, 200, 250, 300, 400, 500, 700, 1000, ANY] },
@@ -486,14 +506,23 @@ for (const [k, s] of Object.entries(SLIDERS)) {
 const val = k => SLIDERS[k].steps[+$('s_' + k).value];
 const setVal = (k, v) => { const s = SLIDERS[k]; let i = s.steps.indexOf(v); if (i < 0) i = s.steps.indexOf(s.def); $('s_' + k).value = i; };
 
-$('types').innerHTML = [['apt', 'Apartments'], ['off', 'Officetels'], ['jeonse', 'Jeonse 전세'], ['monthly', 'Wolse 월세']]
-  .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
+$('types').innerHTML = (S ? Object.entries(PTYPES).map(([k, l]) => ['p_' + k, l]) : [['t_apt', 'Apartments'], ['t_off', 'Officetels'], ['t_jeonse', 'Jeonse 전세'], ['t_monthly', 'Wolse 월세']])
+  .map(([id, l]) => `<label><input type="checkbox" id="${id}"> ${l}</label>`).join('');
+if (S) {
+  $('stays').innerHTML = STAYS.map(([w, l], i) => `<label><input type="radio" name="stay" value="${w}"${i ? '' : ' checked'}> ${l}</label>`).join('');
+  $('units').innerHTML = UNITS.map(([, l], i) => `<label><input type="radio" name="unit" value="${i}"${i ? '' : ' checked'}> ${l[0].toUpperCase() + l.slice(1)}</label>`).join('');
+  secEl('stay').hidden = false;
+  secEl('age').hidden = true;
+  for (const id of ['ctl_rent', 'ctl_fee', 'ctl_total', 'formula', 'longChecks']) $(id).hidden = true; // kept in the page so val() still reads them
+  document.querySelector('#sortBox .info').dataset.help = 'Ranked by price per night per m² of usable space for your stay, with the long-stay discount, management fee and cleaning fee included, compared with the median listing in its district and the districts around it.';
+}
 $('curs').innerHTML = Object.entries(CUR).map(([c, [s, name]]) => `<label title="${name}"><input type="radio" name="cur" id="cur_${c}" value="${c}"${c === 'KRW' ? ' checked' : ''}> ${s} ${c}</label>`).join('');
 $('sources').innerHTML = DATA.site ? '' : [['dabang', 'Dabang'], ['zigbang', 'Zigbang']]
   .map(([v, l]) => `<label><input type="checkbox" id="t_${v}"> ${l}</label>`).join('');
 
 // Row: [key (d: Dabang, z: Zigbang), category 0 apt/1 officetel, deal 0 jeonse/1 monthly, deposit, rent, fee, usable m², complex, dong, region index, floor, title, short, lh, price text, partial, building age|null, photo|null, fee estimated, size estimated, rooms|null, metres to nearest station, station index, on both sites, lat, lng]
-const ROWS = DATA.rows.map(r => ({ key: r[0], cat: r[1], deal: r[2], dep: r[3], rent: r[4], fee: r[5], m2: r[6], complex: r[7], dong: r[8], reg: r[9], floor: r[10], title: r[11], short: r[12], lh: r[13], price: r[14], partial: r[15], age: r[16], photo: r[17], feeEst: r[18], sizeEst: r[19], beds: r[20], subM: r[21], sub: r[22], also: r[23], lat: r[24], lng: r[25] }));
+const ROWS = DATA.rows.map(r => ({ key: r[0], cat: r[1], deal: r[2], dep: r[3], rent: r[4], fee: r[5], m2: r[6], complex: r[7], dong: r[8], reg: r[9], floor: r[10], title: r[11], short: r[12], lh: r[13], price: r[14], partial: r[15], age: r[16], photo: r[17], feeEst: r[18], sizeEst: r[19], beds: r[20], subM: r[21], sub: r[22], also: r[23], lat: r[24], lng: r[25],
+  ...(S && { wRent: r[26], wFee: r[27], clean: r[28], minW: r[29], disc: r[30], rating: r[31], nRev: r[32], pt: r[33] }) })); // short term: weekly rent and fee, cleaning fee (won), min weeks, [weeks, % off], rating, reviews, property type
 const BY_KEY = new Map(ROWS.map(r => [r.key, r]));
 const hay = r => r.hay ??= [r.complex, r.dong, dongText(r.dong), r.title, DATA.regions[r.reg].label, DATA.stations[r.sub], stationName(DATA.stations[r.sub])].join(' ').toLowerCase();
 const areaText = r => r.areaText ?? `${dongText(r.dong)}, ${districtText(DATA.regions[r.reg].label)}`;
@@ -505,8 +534,8 @@ $('areas').innerHTML = Object.entries(groups).sort((a, b) => b[1].length - a[1].
 const areaBoxes = [...document.querySelectorAll('[data-reg]')];
 const regionsOf = p => areaBoxes.filter(b => DATA.regions[+b.dataset.reg].province === p);
 
-const CHECKS = ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang'].filter(k => !(DATA.site && /^t_(dabang|zigbang)$/.test(k)));
-const CHECK_DEFAULTS = { t_apt: true, t_off: true, t_jeonse: true, t_monthly: true, t_dabang: true, t_zigbang: true, unknownFee: true, unknownAge: DATA.site === 'short' }; // 33m2 publishes no building age, so its listings show by default
+const CHECKS = S ? ['hideLow', ...Object.keys(PTYPES).map(k => 'p_' + k)] : ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang'];
+const CHECK_DEFAULTS = { t_apt: true, t_off: true, t_jeonse: true, t_monthly: true, t_dabang: true, t_zigbang: true, unknownFee: true, ...Object.fromEntries(Object.keys(PTYPES).map(k => ['p_' + k, true])) };
 
 // Up to two stations of your own; distance to them shows on cards and can filter and sort.
 let places = [];
@@ -517,6 +546,7 @@ function resetSection(el) {
   for (const i of el.querySelectorAll('input[type=range]')) { const k = i.id.slice(2); setVal(k, SLIDERS[k].def); }
   for (const i of el.querySelectorAll('input[type=checkbox]')) i.checked = !!CHECK_DEFAULTS[i.id];
   for (const i of el.querySelectorAll('input[type=search]')) i.value = '';
+  for (const i of el.querySelectorAll('[name=stay], [name=unit]')) i.checked = i.defaultChecked;
   if (el.dataset.sec === 'places') { places = []; $('placeHits').innerHTML = ''; paintPlaces(); }
 }
 const ALL_SECS = [...document.querySelectorAll('[data-sec]')];
@@ -525,7 +555,7 @@ function resetAll() { ALL_SECS.forEach(resetSection); $('sort').value = 'v'; }
 const STORE = 'finder-filters-v2' + (DATA.site ? '-' + DATA.site : ''); // separate saved filters per site, since both pages share an origin
 function saveState() {
   try {
-    localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value, p: places, u: cur }));
+    localStorage.setItem(STORE, JSON.stringify({ s: Object.fromEntries(Object.keys(SLIDERS).map(k => [k, val(k) === ANY ? 'any' : val(k)])), c: Object.fromEntries(CHECKS.map(c => [c, $(c).checked])), a: areaBoxes.filter(b => b.checked).map(b => DATA.regions[+b.dataset.reg].key), q: $('q').value, o: $('sort').value, p: places, u: cur, w: W, n: UNITS.indexOf(U) }));
   } catch {}
 }
 function loadState() {
@@ -540,6 +570,7 @@ function loadState() {
     $('q').value = st.q;
     $('sort').value = st.o;
     if (CUR[st.u]) $('cur_' + st.u).checked = true;
+    for (const [name, v] of [['stay', st.w], ['unit', st.n]]) { const i = document.querySelector(`[name=${name}][value="${v}"]`); if (i) i.checked = true; }
     if (!$('sort').value) $('sort').value = 'v';
   } catch {}
 }
@@ -602,26 +633,34 @@ const medOf = x => MED[x.r.reg] ?? null;
 const PAGE = 60;
 
 function score(r, rate = val('rate'), penalty = val('penalty')) {
+  if (S) { // e: price per chosen unit and v: per night per m², both in 만원 like the long-term figures
+    const off = Math.max(0, ...r.disc.filter(([w]) => w <= W).map(d => d[1]));
+    const tot = (r.wRent * (1 - off / 100) + r.wFee) * W + r.clean, night = tot / (W * 7);
+    return { r, a: r.m2, tot, off, night, e: night * U[0] / 1e4, v: night / 1e4 / r.m2 };
+  }
   const e = r.rent + r.fee + r.dep * rate / 100 / 12;
   return { r, a: r.m2, e, v: e / r.m2 * (1 + penalty / 100 * (r.age ?? 0) / 10) };
 }
 
 function compute() {
   const rate = val('rate'), penalty = val('penalty'), maxAge = val('maxAge');
-  const f = { dep: val('deposit'), rent: val('rent'), fee: val('fee'), total: val('total'), minA: val('minA'), maxA: val('maxA'), beds: val('beds'), sub: val('sub') };
+  const f = { dep: val('deposit'), rent: val('rent'), fee: val('fee'), total: val('total'), minA: val('minA'), maxA: val('maxA'), beds: val('beds'), sub: val('sub'), night: S ? val('price') * 1e4 : ANY };
   const c = Object.fromEntries(CHECKS.map(k => [k, $(k).checked]));
   const regs = new Set(areaBoxes.filter(b => b.checked).map(b => +b.dataset.reg));
   const q = $('q').value.trim().toLowerCase();
   const ps = [0, 1].map(placeAt), max = [val('place0') * 1000, val('place1') * 1000];
   const out = [];
   rows: for (const r of ROWS) {
-    if (!(r.cat ? c.t_off : c.t_apt) || !(r.deal ? c.t_monthly : c.t_jeonse)) continue;
-    if (!DATA.site && !(r.also ? c.t_dabang || c.t_zigbang : r.key[0] === 'd' ? c.t_dabang : c.t_zigbang)) continue;
-    if (r.partial && !c.partial) continue;
-    if (r.short && !c.shortTerm) continue;
-    if (r.lh && !c.lh) continue;
-    if (r.feeEst && !c.unknownFee) continue;
-    if (r.age === null ? !c.unknownAge : r.age > maxAge) continue;
+    if (S) { if (!c['p_' + r.pt] || r.minW > W) continue; }
+    else {
+      if (!(r.cat ? c.t_off : c.t_apt) || !(r.deal ? c.t_monthly : c.t_jeonse)) continue;
+      if (!(r.also ? c.t_dabang || c.t_zigbang : r.key[0] === 'd' ? c.t_dabang : c.t_zigbang)) continue;
+      if (r.partial && !c.partial) continue;
+      if (r.short && !c.shortTerm) continue;
+      if (r.lh && !c.lh) continue;
+      if (r.feeEst && !c.unknownFee) continue;
+      if (r.age === null ? !c.unknownAge : r.age > maxAge) continue;
+    }
     if (c.hideLow && isLow(r.floor)) continue;
     if (regs.size && !regs.has(r.reg)) continue;
     if (r.dep > f.dep || r.rent > f.rent || r.fee > f.fee) continue;
@@ -629,7 +668,7 @@ function compute() {
     if (r.subM > f.sub) continue;
     if (r.beds !== null && r.beds < f.beds) continue; // rooms unknown (many Zigbang apartments): kept
     const x = score(r, rate, penalty);
-    if (x.e > f.total) continue;
+    if (x.e > f.total || S && x.night > f.night) continue;
     if (q && !hay(r).includes(q)) continue;
     x.pd = [null, null];
     for (let i = 0; i < 2; i++) if (ps[i] && r.lat != null) { x.pd[i] = metres(r.lat, r.lng, ps[i].at); if (x.pd[i] > max[i]) continue rows; }
@@ -637,7 +676,7 @@ function compute() {
   }
   MED = districtMedians(out); // before sorting: best value is measured against each district's median
   const sort = $('sort').value;
-  const by = { v: x => x.v / (medOf(x)?.v ?? 1), e: x => x.e, a: x => -x.a, d: x => x.r.dep, n: x => x.r.age ?? 99, p0: x => x.pd[0] ?? Infinity, p1: x => x.pd[1] ?? Infinity }[sort];
+  const by = { v: x => x.v / (medOf(x)?.v ?? 1), e: x => x.e, a: x => -x.a, d: x => x.r.dep, r: x => -(x.r.rating ?? 0) * 1e4 - x.r.nRev, n: x => x.r.age ?? 99, p0: x => x.pd[0] ?? Infinity, p1: x => x.pd[1] ?? Infinity }[sort];
   out.sort((x, y) => by(x) - by(y) || x.v - y.v);
   return out;
 }
@@ -651,17 +690,18 @@ const shade = b => b >= 60 ? 'g3' : b >= 30 ? 'g2' : b >= 0 ? 'g1' : 'above';
 // What puts a listing above or below the median, for the badge's hover.
 function whyText(x) {
   const r = x.r, penalty = val('penalty'), rate = val('rate'), out = [], { v: medV, e: medE, a: medA, age: medAge, name } = medOf(x);
-  out.push(`${perM2(x.v)} a month per m² of usable space, against a median of ${perM2(medV)} for ${name} and the districts around it, among the listings your filters show.`);
+  const k = S ? U[0] : 1, per = S ? 'a ' + U[1] : 'each month';
+  out.push(`${perM2(x.v * k)} ${S ? per : 'a month'} per m² of usable space, against a median of ${perM2(medV * k)} for ${name} and the districts around it, among the listings your filters show.`);
   const cmp = (v, m, hi, lo) => m && v >= m * 1.15 ? hi : m && v <= m * .85 ? lo : null;
   const why = [
     cmp(r.m2, medA, `+ Bigger than most: ${sizeText(r)}, median ${Math.round(medA)} m²`, `− Smaller than most: ${sizeText(r)}, median ${Math.round(medA)} m²`),
-    cmp(x.e, medE, `− Costs more each month than most: ${money(x.e)}, median ${money(medE)}`, `+ Costs less each month than most: ${money(x.e)}, median ${money(medE)}`),
+    cmp(x.e, medE, `− Costs more ${per} than most: ${money(x.e)}, median ${money(medE)}`, `+ Costs less ${per} than most: ${money(x.e)}, median ${money(medE)}`),
     !penalty ? null : r.age === null ? '+ Building age unknown, so no age penalty'
       : medAge !== null && r.age <= medAge - 5 ? `+ Newer than most: ${ageShort(r.age)}, median ${medAge} yrs, so a smaller age penalty (+${+(penalty * r.age / 10).toFixed(1)}%)`
       : medAge !== null && r.age >= medAge + 5 ? `− Older than most: ${ageShort(r.age)}, median ${medAge} yrs, which adds +${+(penalty * r.age / 10).toFixed(1)}%` : null,
   ].filter(Boolean);
-  out.push(...(why.length ? why : ['· Close to the median on size, monthly cost and age']));
-  if (r.dep && r.dep * rate / 1200 > x.e * .6) out.push(`· Most of the real cost is the deposit, counted at ${rate.toFixed(1)}% a year. A higher rate in “Adjust the formula” makes it look worse.`);
+  out.push(...(why.length ? why : [S ? '· Close to the median on size and price' : '· Close to the median on size, monthly cost and age']));
+  if (!S && r.dep && r.dep * rate / 1200 > x.e * .6) out.push(`· Most of the real cost is the deposit, counted at ${rate.toFixed(1)}% a year. A higher rate in “Adjust the formula” makes it look worse.`);
   if (r.feeEst) out.push('· Maintenance is estimated from the district median');
   if (r.sizeEst) out.push('· Usable size is estimated');
   if (belowOf(x) >= 80) out.push('! Far cheaper than usual. Check the listing isn’t one room of a shared unit or a mistyped price.');
@@ -673,28 +713,32 @@ const termBtn = r => helpBtn('term', r.deal ? 'Wolse' : 'Jeonse', r.deal ? HELP.
 const priceText = r => r.deal ? money(r.rent) + '/mo' : money(r.dep);
 const depSmall = r => r.deal ? `<small>${r.dep ? '+ ' + money(r.dep) + ' deposit' : 'no deposit'}</small>` : '';
 const ageShort = a => a === null ? '' : a === 0 ? 'new build' : a === 1 ? '1 yr old' : a + ' yrs old';
-const typeText = r => r.cat ? 'Officetel' : 'Apartment';
+const typeText = r => S ? PTYPES[r.pt] ?? 'Room' : r.cat ? 'Officetel' : 'Apartment';
 const sizeText = r => `${r.sizeEst ? '~' : ''}${Math.round(r.m2)} m²`;
 const roomsText = r => r.beds ? r.beds + (r.beds > 1 ? ' rooms' : ' room') : '';
 const distLine = (r, pd = []) => {
-  const parts = [`${subText(r)} ${dist(r.subM)}`];
+  const parts = S && r.subM > 3000 ? [] : [`${subText(r)} ${dist(r.subM)}`]; // short term is nationwide, beyond the subway
   [0, 1].forEach(i => { const p = placeAt(i); if (!p || r.lat == null) return; const name = stationName(p.name); if (name !== subText(r)) parts.push(`${name} ${dist(pd[i] ?? metres(r.lat, r.lng, p.at))}`); });
   return parts.join(' · ');
 };
 
 function cardHtml(x, gone) {
   const r = x.r;
-  const facts = [typeText(r), sizeText(r), roomsText(r), ageShort(r.age)].filter(Boolean).join(' · ');
-  const flags = [r.feeEst && 'Maintenance estimated', r.partial && 'Might be one room of a unit', r.short && 'Short-term', r.lh && 'LH public housing'].filter(Boolean).join(' · ');
+  const facts = [typeText(r), sizeText(r), roomsText(r), S ? '' : ageShort(r.age)].filter(Boolean).join(' · ');
+  const flags = (S ? [r.minW > 1 && `Minimum ${r.minW} weeks`, r.dep ? money(r.dep) + ' deposit, refunded' : 'No deposit']
+    : [r.feeEst && 'Maintenance estimated', r.partial && 'Might be one room of a unit', r.short && 'Short-term', r.lh && 'LH public housing']).filter(Boolean).join(' · ');
+  const top = S ? `<div class="line1"><span>${money(x.e)}</span> <small>${U[1]}</small><span class="rating">${rateText(r)}</span></div>
+      <div class="real">${totalText(x)}</div>`
+    : `<div class="line1">${gone ? (r.deal ? 'Wolse' : 'Jeonse') : termBtn(r)} <span>${priceText(r)}</span> ${depSmall(r)}</div>
+      <div class="real">Real cost ${money(x.e)} a month</div>`;
   return `<article class="card${gone ? ' gone' : ''}">
     <div class="photo">${photoTag(r)}${gone ? '<span class="badge none">No longer listed</span>' : badge(x)}</div>
     ${gone ? '' : `<a class="open" href="#${esc(r.key)}" aria-label="Open ${esc(r.complex)}"></a>`}
     ${favBtn(r.key, 'star', 22)}
     <div class="cbody">
-      <div class="line1">${gone ? (r.deal ? 'Wolse' : 'Jeonse') : termBtn(r)} <span>${priceText(r)}</span> ${depSmall(r)}</div>
-      <div class="real">Real cost ${money(x.e)} a month</div>
+      ${top}
       <div class="ttl">${esc(r.complex)}</div>
-      <div class="meta">${esc(areaText(r))}<br>${esc(facts)}<br>${esc(distLine(r, x.pd))}${flags ? '<br>' + esc(flags) : ''}</div>
+      <div class="meta">${[areaText(r), facts, distLine(r, x.pd), flags].filter(Boolean).map(esc).join('<br>')}</div>
     </div>
   </article>`;
 }
@@ -704,7 +748,7 @@ const dlg = $('detail');
 const shardOf = key => { let h = 0; for (const c of key) h = (h * 31 + c.charCodeAt(0)) & 255; return h.toString(16).padStart(2, '0'); };
 const shards = new Map();
 const loadShard = s => { if (!shards.has(s)) shards.set(s, fetch(`data/d/${s}.json`).then(res => { if (!res.ok) throw new Error(res.status); return res.json(); }).catch(e => { shards.delete(s); throw e; })); return shards.get(s); };
-const isListing = () => /^#[dz]:/.test(location.hash);
+const isListing = () => /^#[dzm]:/.test(location.hash);
 let current = null, navigated = false;
 
 function factRows(r, d) {
@@ -733,7 +777,7 @@ function factRows(r, d) {
     else add(k, String(v));
   }
   if (!d.facts.some(f => f[0] === 'Rooms') && bath) add('Bathrooms', bath);
-  if (!d.facts.some(f => f[0] === 'Maintenance')) add('Maintenance', r.feeEst ? `about ${money(r.fee)} a month (estimated)` : money(r.fee) + ' a month', HELP.fee);
+  if (!S && !d.facts.some(f => f[0] === 'Maintenance')) add('Maintenance', r.feeEst ? `about ${money(r.fee)} a month (estimated)` : money(r.fee) + ' a month', HELP.fee);
   return out;
 }
 
@@ -741,7 +785,17 @@ function detailHtml(r, d) {
   const x = score(r), rate = val('rate'), penalty = val('penalty');
   const pen = penalty * (r.age ?? 0) / 10;
   const raw = x.e / r.m2;
-  const how = [
+  const how = (S ? [
+    [`Weekly rent × ${W}`, won(r.wRent * W)],
+    x.off ? [`Long-stay discount, ${x.off}% off rent`, '− ' + won(r.wRent * W * x.off / 100)] : null,
+    r.wFee ? [`Management fee × ${W}`, won(r.wFee * W)] : null,
+    r.clean ? ['Cleaning fee, once', won(r.clean)] : null,
+    [`<b>Total for ${stayText(W)}</b>`, `<b>${won(x.tot)}</b>`],
+    [`Per ${U[1]}`, money(x.e)],
+    [`Per ${U[1]} per m² of usable space (${sizeText(r)})`, perM2(x.v * U[0])],
+    medOf(x) ? [`<b>Median listing in ${medOf(x).name} and around</b>`, `<b>${perM2(medOf(x).v * U[0])}</b>`] : null,
+    r.dep ? ['Deposit, refunded when you leave', money(r.dep)] : null,
+  ] : [
     r.rent ? [`Monthly rent`, money(r.rent)] : null,
     r.dep ? [`Deposit, ${money(r.dep)} at ${rate.toFixed(1)}% a year`, money(r.dep * rate / 100 / 12)] : null,
     [r.feeEst ? 'Maintenance (estimated)' : 'Maintenance', r.fee ? money(r.fee) : '₩0'],
@@ -749,11 +803,14 @@ function detailHtml(r, d) {
     [`Per m² of usable space (${sizeText(r)})`, perM2(raw)],
     r.age === null ? ['Building age unknown, no penalty', perM2(x.v)] : pen ? [`With ${r.age}-year-old building penalty, +${+pen.toFixed(1)}%`, perM2(x.v)] : null,
     medOf(x) ? [`<b>Median listing in ${medOf(x).name} and around</b>`, `<b>${perM2(medOf(x).v)}</b>`] : null,
-  ].filter(Boolean).map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
+  ]).filter(Boolean).map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   const head = `<section class="dsec dhead">${badge(x)}
-      <div class="bigprice">${termBtn(r).replace('class="term"', 'class="term" style="z-index:0"')} <span id="dTitle" title="${esc(moneyKo(r.price))}">${priceText(r)}</span> ${depSmall(r)}</div>
+      ${S ? `<div class="bigprice"><span id="dTitle">${money(x.e)}</span> <small>${U[1]}</small></div>
+      <div class="bigreal">${totalText(x)}</div>
+      <div class="muted">${esc(areaText(r))} · ${typeText(r)} · ${rateText(r)}</div>`
+      : `<div class="bigprice">${termBtn(r).replace('class="term"', 'class="term" style="z-index:0"')} <span id="dTitle" title="${esc(moneyKo(r.price))}">${priceText(r)}</span> ${depSmall(r)}</div>
       <div class="bigreal">Real cost ${money(x.e)} a month</div>
-      <div class="muted">${esc(areaText(r))} · ${typeText(r)}</div>
+      <div class="muted">${esc(areaText(r))} · ${typeText(r)}</div>`}
       <details class="how"><summary>How this is worked out</summary><div class="pairs">${how}</div></details>
     </section>`;
   const bath = d?.facts.find(f => f[0] === 'Bathrooms')?.[1];
@@ -764,8 +821,10 @@ function detailHtml(r, d) {
   const tiles = `<section class="tiles">
       <div><b>${sizeText(r)}</b><span>Usable, ${Math.round(r.m2 / 3.3058)}평</span></div>
       <div><b>${roomsText(r) || '–'}</b><span>${bath ? bath + (bath > 1 ? ' bathrooms' : ' bathroom') : 'Rooms'}</span></div>
-      <div><b>${esc(flr) || '–'}</b><span>Floor${of ? ', of ' + of : ''}</span></div>
-      <div><b>${r.age === null ? '–' : r.age === 0 ? 'New' : r.age + (r.age > 1 ? ' yrs' : ' yr')}</b><span>${approved ? 'Built ' + String(approved).slice(0, 4) : 'Age'}</span></div>
+      ${S ? `<div><b>${r.rating ? '★ ' + r.rating.toFixed(2) : 'New'}</b><span>${r.nRev === 1 ? '1 review' : r.nRev + ' reviews'}</span></div>
+      <div><b>${r.minW + (r.minW > 1 ? ' weeks' : ' week')}</b><span>Minimum stay</span></div>`
+      : `<div><b>${esc(flr) || '–'}</b><span>Floor${of ? ', of ' + of : ''}</span></div>
+      <div><b>${r.age === null ? '–' : r.age === 0 ? 'New' : r.age + (r.age > 1 ? ' yrs' : ' yr')}</b><span>${approved ? 'Built ' + String(approved).slice(0, 4) : 'Age'}</span></div>`}
     </section>`;
   const gallery = !d ? (r.photo ? `<div class="gallery-box"><div class="gallery"><img src="${esc(photoUrl(r))}" alt="${esc(r.complex)}" referrerpolicy="no-referrer"></div></div>` : '<div class="nophoto">Loading…</div>')
     : d.imgs.length ? `<div class="gallery-box"><div class="gallery" id="gal" tabindex="0" aria-label="${d.imgs.length} photos">${d.imgs.map((u, i) => `<img src="${esc(u)}" alt="Photo ${i + 1} of ${d.imgs.length}" ${i ? 'loading="lazy"' : ''} referrerpolicy="no-referrer" onerror="this.remove()">`).join('')}</div>${d.imgs.length > 1 ? `<button class="arrow prev" type="button" data-slide="-1" aria-label="Previous photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><button class="arrow next" type="button" data-slide="1" aria-label="Next photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button><span class="counter" id="galN">1 / ${d.imgs.length}</span>` : ''}</div>`
@@ -897,7 +956,8 @@ function loadFavs() {
   for (const k of favs.keys()) if (BY_KEY.has(k)) favs.set(k, { addr: favs.get(k).addr, ...snapshot(BY_KEY.get(k)) });
   saveFavs();
 }
-function paintFavs() { $('savedN').textContent = 'Saved ' + favs.size; }
+const mine = k => (k[0] === 'm') === S; // both tabs share saved listings; each shows its own
+function paintFavs() { $('savedN').textContent = 'Saved ' + [...favs.keys()].filter(mine).length; }
 document.addEventListener('click', e => {
   const b = e.target.closest?.('[data-fav]');
   if (!b) return;
@@ -922,7 +982,7 @@ $('share').addEventListener('click', async () => {
 
 function savedItems() {
   const rate = val('rate'), penalty = val('penalty');
-  const items = [...favs.entries()].map(([k, s]) => { const r = BY_KEY.get(k); const x = score(r ?? s, rate, penalty); return { x, gone: !r, addr: s.addr }; });
+  const items = [...favs.entries()].filter(([k]) => mine(k)).map(([k, s]) => { const r = BY_KEY.get(k); const x = score(r ?? s, rate, penalty); return { x, gone: !r, addr: s.addr }; });
   return items.sort((a, b) => a.gone - b.gone || a.x.v - b.x.v);
 }
 function paintSaved() {
@@ -931,10 +991,13 @@ function paintSaved() {
   $('share').hidden = !items.some(i => !i.gone);
   $('list').innerHTML = items.length ? items.map(i => cardHtml(i.x, i.gone)).join('') : '<div class="empty">Nothing saved yet. Tap the star on a listing to keep it here.</div>';
   const rows = [
-    ['Price', ({ x: { r } }) => `<b>${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</b>${r.deal ? `<small>${r.dep ? money(r.dep) + ' deposit' : 'No deposit'}</small>` : ''}`],
-    ['Real monthly cost', ({ x }) => `<b>${money(x.e)}</b><small>Real monthly cost</small>`],
+    S ? ['Price', ({ x }) => `<b>${money(x.e)} ${U[1]}</b><small>${totalText(x)}</small>`]
+      : ['Price', ({ x: { r } }) => `<b>${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</b>${r.deal ? `<small>${r.dep ? money(r.dep) + ' deposit' : 'No deposit'}</small>` : ''}`],
+    S ? ['Rating', ({ x: { r } }) => `${rateText(r)}<small>Rating and reviews</small>`]
+      : ['Real monthly cost', ({ x }) => `<b>${money(x.e)}</b><small>Real monthly cost</small>`],
     ['Size', ({ x: { r } }) => `${sizeText(r)} · ${Math.round(r.m2 / 3.3058)}평${roomsText(r) ? ' · ' + roomsText(r) : ''}<small>Usable size</small>`],
-    ['Age', ({ x: { r } }) => `${r.age === null ? 'Unknown' : r.age === 0 ? 'New build' : r.age + (r.age > 1 ? ' years old' : ' year old')}<small>Building age</small>`],
+    S ? ['Minimum stay', ({ x: { r } }) => `${r.minW + (r.minW > 1 ? ' weeks' : ' week')}<small>Minimum stay</small>`]
+      : ['Age', ({ x: { r } }) => `${r.age === null ? 'Unknown' : r.age === 0 ? 'New build' : r.age + (r.age > 1 ? ' years old' : ' year old')}<small>Building age</small>`],
     ['Subway', ({ x: { r } }) => `${esc(subText(r))} ${dist(r.subM)}<small>Nearest subway</small>`],
     ['Address', i => `${esc(i.addr ?? areaText(i.x.r))}<small>${typeText(i.x.r)}</small>`],
   ];
@@ -954,11 +1017,11 @@ function miniHtml(x) {
   const r = x.r;
   return `<div class="mrow"><div class="mphoto">${r.photo ? `<img src="${esc(photoUrl(r))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div>
     <a class="open" href="#${esc(r.key)}" aria-label="Open ${esc(r.complex)}"></a>
-    <div class="cbody"><div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${money(x.e)} a month</div><div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x))} · ${sizeText(r)}</div></div></div>`;
+    <div class="cbody">${S ? `<div class="line1">${money(x.e)} <small>${U[1]}</small><span class="rating">${rateText(r)}</span></div><div class="real">${totalText(x)}</div>` : `<div class="line1">${r.deal ? 'Wolse' : 'Jeonse'} ${priceText(r)}</div><div class="real">Real cost ${money(x.e)} a month</div>`}<div class="ttl">${esc(r.complex)}</div><div class="meta">${esc(badgeText(x))} · ${sizeText(r)}</div></div></div>`;
 }
 const tileIcon = (x, n) => L.divIcon({
   className: 'tile' + (medOf(x) ? ' ' + shade(belowOf(x)) : ''), iconSize: [84, 84], iconAnchor: [42, 91],
-  html: `<div class="tphoto">${x.r.photo ? `<img src="${esc(photoUrl(x.r))}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div><div class="tprice">${priceText(x.r)}</div>${n > 1 ? `<span class="tcount">${n}</span>` : ''}`,
+  html: `<div class="tphoto">${x.r.photo ? `<img src="${esc(photoUrl(x.r))}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith('No photo')">` : 'No photo'}</div><div class="tprice">${S ? money(x.e) + { night: '', week: '/wk', month: '/mo' }[U[1]] : priceText(x.r)}</div>${n > 1 ? `<span class="tcount">${n}</span>` : ''}`,
 });
 const badgeText = x => { const b = medOf(x) ? belowOf(x) : 0; return b > 0 ? b + '% below median' : b < 0 ? -b + '% above median' : 'At the median'; };
 function paintMap(fit) {
@@ -1040,21 +1103,22 @@ function setView(v) {
 // Chips show the current value of each filter.
 function chipText() {
   const lim = (k, f) => val(k) === SLIDERS[k].def ? null : f(val(k));
-  const budget = lim('total', v => '≤ ' + money(v)) ?? lim('rent', v => money(v) + '/mo') ?? lim('deposit', v => '≤ ' + money(v) + ' dep.') ?? lim('fee', v => 'fee ≤ ' + money(v));
+  const budget = (S ? lim('price', v => '≤ ' + money(v * U[0]) + ' a ' + U[1]) : null) ?? lim('total', v => '≤ ' + money(v)) ?? lim('rent', v => money(v) + '/mo') ?? lim('deposit', v => '≤ ' + money(v) + ' dep.') ?? lim('fee', v => 'fee ≤ ' + money(v));
   const on = areaBoxes.filter(b => b.checked);
   const provs = Object.keys(groups).filter(p => regionsOf(p).every(b => b.checked));
   const area = $('q').value.trim() ? '“' + $('q').value.trim() + '”' : !on.length ? null : provs.length === 1 && on.length === regionsOf(provs[0]).length ? provs[0] : on.length === 1 ? districtText(DATA.regions[+on[0].dataset.reg].label) : on.length + ' districts';
   const lo = val('minA'), hi = val('maxA');
   const size = lo && hi !== ANY ? `${lo}–${hi} m²` : lo ? `≥ ${lo} m²` : hi !== ANY ? `≤ ${hi} m²` : null;
-  const off = CHECKS.filter(c => $(c).checked !== !!CHECK_DEFAULTS[c]).length + (val('rate') !== DATA.rate) + (val('penalty') !== DATA.penalty);
+  const off = CHECKS.filter(c => $(c).checked !== !!CHECK_DEFAULTS[c]).length + (!S && val('rate') !== DATA.rate) + (!S && val('penalty') !== DATA.penalty);
   return [
+    ...(S ? [['stay', 'Stay', `${stayText(W)}, per ${U[1]}`, W !== 1 || U !== UNITS[0]]] : []),
     ['budget', 'Budget', budget], ['area', 'Area', area], ['size', 'Size', size],
     ['rooms', 'Rooms', val('beds') ? val('beds') + '+' : null],
     ['age', 'Age', val('maxAge') === ANY ? 'Any' : '≤ ' + val('maxAge') + ' yrs', val('maxAge') !== 30],
     ['places', 'Places', places.length ? places.map(stationName).join(', ') : null],
     ['more', 'More', off || null],
     ['currency', 'Currency', CUR[cur][0] + ' ' + cur, cur !== 'KRW'],
-  ];
+  ].filter(c => !(S && c[0] === 'age'));
 }
 function paintChips() {
   $('chips').innerHTML = chipText().map(([k, l, v, active = v != null]) => `<button type="button" data-open="${k}"${active ? ' class="on"' : ''}>${esc(k === 'more' && v == null ? l : l + ': ' + (v ?? (k === 'places' ? 'Add' : 'Any')))}</button>`).join('');
@@ -1074,7 +1138,8 @@ function paintPlaces() {
   $('placeLabel').textContent = places.length ? 'Add a second place' : 'Add a place, like work or family';
   paintSort();
 }
-const SORTS = [['v', 'Best value first'], ['e', 'Lowest real cost'], ['a', 'Largest usable size'], ['n', 'Newest building'], ['d', 'Lowest deposit']];
+const SORTS = S ? [['v', 'Best value first'], ['e', 'Lowest price'], ['r', 'Top rated'], ['a', 'Largest usable size'], ['d', 'Lowest deposit']]
+  : [['v', 'Best value first'], ['e', 'Lowest real cost'], ['a', 'Largest usable size'], ['n', 'Newest building'], ['d', 'Lowest deposit']];
 function paintSort() {
   const cur = $('sort').value || 'v';
   $('sort').innerHTML = [...SORTS, ...places.map((n, i) => ['p' + i, 'Closest to ' + stationName(n)])].map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('');
@@ -1166,6 +1231,11 @@ $('areas').addEventListener('click', e => {
 });
 
 function update() {
+  if (S) {
+    W = +document.querySelector('[name=stay]:checked').value;
+    U = UNITS[+document.querySelector('[name=unit]:checked').value];
+    $('ctl_price').querySelector('label').textContent = 'Max price per ' + U[1];
+  }
   for (const k of Object.keys(SLIDERS)) $('o_' + k).textContent = SLIDERS[k].fmt(val(k));
   cur = document.querySelector('[name=cur]:checked')?.value ?? 'KRW';
   if (cur !== 'KRW' && !ratesLoading) loadRates().then(update);
