@@ -1,0 +1,170 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+@theme {
+    --breakpoint-lg: 56.25rem; /* 900px: the sidebar layout starts here, as on the old page */
+}
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --color-value-3: var(--value-3);
+    --color-value-2: var(--value-2);
+    --color-value-1: var(--value-1);
+    --color-value-above: var(--value-above);
+    --color-on-value: var(--on-value);
+    --color-on-photo: var(--on-photo);
+    --color-photo-ink: var(--photo-ink);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* The old page's warm paper palette, mapped onto shadcn's tokens. */
+:root {
+    --background: #F7F5F1;
+    --foreground: #1F1C17;
+    --card: #FFFFFF;
+    --card-foreground: #1F1C17;
+    --popover: #FFFFFF;
+    --popover-foreground: #1F1C17;
+    --primary: #1F1C17;
+    --primary-foreground: #FFFFFF;
+    --secondary: #ECE7DE;
+    --secondary-foreground: #1F1C17;
+    --muted: #F3EFE8;
+    --muted-foreground: #6A6358;
+    --accent: #ECE7DE;
+    --accent-foreground: #1F1C17;
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: #E4DED3;
+    --input: #D9D2C5;
+    --ring: #6A6358;
+    --chart-1: #17693F;
+    --chart-2: #357F53;
+    --chart-3: #5F7466;
+    --chart-4: #8A5000;
+    --chart-5: #6A6358;
+    --radius: 0.75rem;
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #1F1C17;
+    --sidebar-primary: #1F1C17;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #ECE7DE;
+    --sidebar-accent-foreground: #1F1C17;
+    --sidebar-border: #E4DED3;
+    --sidebar-ring: #6A6358;
+    /* How far below its district median a listing is: 60%+, 30%+, 0%+, above. White text passes AA on each. */
+    --value-3: #17693F;
+    --value-2: #357F53;
+    --value-1: #5F7466;
+    --value-above: #8A5000;
+    --on-value: #FFFFFF;
+    --on-photo: rgb(255 255 255 / 0.92);
+    --photo-ink: #1F1C17;
+}
+
+@media (prefers-color-scheme: dark) {
+:root {
+    --background: #171512;
+    --foreground: #F2EEE6;
+    --card: #211E1A;
+    --card-foreground: #F2EEE6;
+    --popover: #211E1A;
+    --popover-foreground: #F2EEE6;
+    --primary: #F2EEE6;
+    --primary-foreground: #1F1C17;
+    --secondary: #2B2722;
+    --secondary-foreground: #F2EEE6;
+    --muted: #2B2722;
+    --muted-foreground: #A9A093;
+    --accent: #2B2722;
+    --accent-foreground: #F2EEE6;
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: #37322B;
+    --input: #48413A;
+    --ring: #A9A093;
+    --sidebar: #211E1A;
+    --sidebar-foreground: #F2EEE6;
+    --sidebar-primary: #F2EEE6;
+    --sidebar-primary-foreground: #1F1C17;
+    --sidebar-accent: #2B2722;
+    --sidebar-accent-foreground: #F2EEE6;
+    --sidebar-border: #37322B;
+    --sidebar-ring: #A9A093;
+}
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}
+
+/* Map pins and clusters are Leaflet divIcons, plain HTML, so they're styled here. Unlayered and scoped to .leaflet-container, because Leaflet's own unlayered CSS would beat anything inside a layer. */
+div.leaflet-container { font: inherit; background: var(--muted); }
+.leaflet-container .leaflet-tile-pane { filter: saturate(0.5); }
+@media (prefers-color-scheme: dark) { .leaflet-container .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.85) saturate(0.35); } }
+.leaflet-container .map-pin { border-radius: 50%; background: var(--value-3); box-shadow: 0 0 0 3px #FFFFFF, 0 2px 8px rgb(0 0 0 / 0.45); }
+.leaflet-container .map-cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 13px; font-weight: 700; box-shadow: 0 0 0 3px rgb(255 255 255 / 0.55), 0 2px 6px rgb(0 0 0 / 0.3); }
+.leaflet-container .map-tile { --tile: var(--value-3); display: flex; flex-direction: column; border: 2px solid var(--tile); border-radius: 10px; background: var(--tile); color: var(--on-value); box-shadow: 0 2px 6px rgb(0 0 0 / 0.35); }
+.leaflet-container .map-tile::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; margin-left: -5px; background: var(--tile); transform: rotate(45deg); }
+.leaflet-container .map-tile .tphoto { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px 8px 0 0; background: var(--muted); color: var(--muted-foreground); font-size: 12px; }
+.leaflet-container .map-tile .tphoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.leaflet-container .map-tile .tprice { padding: 2px 0; font-size: 13px; font-weight: 700; line-height: 1.3; text-align: center; white-space: nowrap; }
+.leaflet-container .map-tile .tcount { position: absolute; top: -8px; right: -8px; min-width: 22px; padding: 0 6px; border-radius: 11px; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 700; line-height: 22px; text-align: center; }
+.leaflet-container .map-cluster.value3, .leaflet-container .map-tile.value3 { --tile: var(--value-3); background: var(--tile); color: var(--on-value); }
+.leaflet-container .map-cluster.value2, .leaflet-container .map-tile.value2 { --tile: var(--value-2); background: var(--tile); color: var(--on-value); }
+.leaflet-container .map-cluster.value1, .leaflet-container .map-tile.value1 { --tile: var(--value-1); background: var(--tile); color: var(--on-value); }
+.leaflet-container .map-cluster.above, .leaflet-container .map-tile.above { --tile: var(--value-above); background: var(--tile); color: var(--on-value); }
+
+@layer base {
+  body:has([data-slot=dialog-content]) { overflow: hidden; }
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
