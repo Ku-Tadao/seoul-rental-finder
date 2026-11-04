@@ -125,6 +125,8 @@ input[type=search] { width: 100%; height: 44px; padding: 0 12px; border: 1px sol
 #placeHits { display: grid; }
 #placeHits button { min-height: 44px; padding: 4px 8px; border: 0; border-bottom: 1px solid var(--line); background: none; font-size: 14px; text-align: left; }
 #placeHits small { color: var(--muted); }
+#placeHits .note { padding: 8px 8px 4px; }
+#pickNote { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 8px 14px; border-radius: 18px; background: var(--btn); color: var(--btn-ink); font-size: 14px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 .note { font-size: 13px; color: var(--muted); }
 .plain { border: 0; padding: 0; background: none; font-weight: 600; }
 
@@ -348,7 +350,7 @@ body:has(dialog[open]) { overflow: hidden; }
       <span id="segBar"></span>
     </div>
     <div class="count" id="count"></div>
-    <div id="mapWrap" hidden><div class="mapnote" id="mapNote">Loading the map…</div><div id="map"></div><div id="mini" hidden></div></div>
+    <div id="mapWrap" hidden><div class="mapnote" id="mapNote">Loading the map…</div><div id="map"></div><div id="mini" hidden></div><div id="pickNote" hidden>Tap the map where your place is</div></div>
     <div id="list"></div>
     <div id="compare"></div>
     <div id="sentinel"></div>
@@ -537,9 +539,10 @@ const regionsOf = p => areaBoxes.filter(b => DATA.regions[+b.dataset.reg].provin
 const CHECKS = S ? ['hideLow', ...Object.keys(PTYPES).map(k => 'p_' + k)] : ['hideLow', 'unknownFee', 'unknownAge', 'partial', 'shortTerm', 'lh', 't_apt', 't_off', 't_jeonse', 't_monthly', 't_dabang', 't_zigbang'];
 const CHECK_DEFAULTS = { t_apt: true, t_off: true, t_jeonse: true, t_monthly: true, t_dabang: true, t_zigbang: true, unknownFee: true, ...Object.fromEntries(Object.keys(PTYPES).map(k => ['p_' + k, true])) };
 
-// Up to two stations of your own; distance to them shows on cards and can filter and sort.
-let places = [];
-const placeAt = i => { const s = DATA.stations.indexOf(places[i]); return s < 0 ? null : { name: places[i], at: DATA.stationAt[s] }; };
+// Up to two places of your own (a station, an address, or a pin on the map); distance to them shows on cards and can filter and sort.
+let places = [], picking = false; // places: { name, at: [lat, lng] }
+const placeAt = i => places[i] ?? null;
+const stationPlace = n => { const s = DATA.stations.indexOf(n); return s < 0 ? null : { name: stationName(n), at: DATA.stationAt[s] }; };
 const metres = (lat, lng, at) => Math.hypot((at[0] - lat) * 111320, (at[1] - lng) * 111320 * Math.cos(lat * Math.PI / 180));
 
 function resetSection(el) {
@@ -562,7 +565,7 @@ function loadState() {
   try {
     const st = JSON.parse(localStorage.getItem(STORE));
     if (!st) return;
-    places = (st.p ?? []).filter(n => DATA.stations.includes(n)).slice(0, 2);
+    places = (st.p ?? []).map(p => typeof p === 'string' ? stationPlace(p) : p).filter(p => p?.at).slice(0, 2); // older saves hold station names
     paintPlaces();
     for (const [k, v] of Object.entries(st.s)) if (SLIDERS[k]) setVal(k, v === 'any' ? ANY : v);
     for (const c of CHECKS) if (c in st.c) $(c).checked = st.c[c];
@@ -642,6 +645,7 @@ function score(r, rate = val('rate'), penalty = val('penalty')) {
   return { r, a: r.m2, e, v: e / r.m2 * (1 + penalty / 100 * (r.age ?? 0) / 10) };
 }
 
+const near = (x, i) => x.pd[i] == null ? Infinity : Math.max(.5, x.v / (medOf(x)?.v ?? x.v)) * (1 + x.pd[i] / 1000);
 function compute() {
   const rate = val('rate'), penalty = val('penalty'), maxAge = val('maxAge');
   const f = { dep: val('deposit'), rent: val('rent'), fee: val('fee'), total: val('total'), minA: val('minA'), maxA: val('maxA'), beds: val('beds'), sub: val('sub'), night: S ? val('price') * 1e4 : ANY };
@@ -676,7 +680,10 @@ function compute() {
   }
   MED = districtMedians(out); // before sorting: best value is measured against each district's median
   const sort = $('sort').value;
-  const by = { v: x => x.v / (medOf(x)?.v ?? 1), e: x => x.e, a: x => -x.a, d: x => x.r.dep, r: x => -(x.r.rating ?? 0) * 1e4 - x.r.nRev, n: x => x.r.age ?? 99, p0: x => x.pd[0] ?? Infinity, p1: x => x.pd[1] ?? Infinity }[sort];
+  const by = { v: x => x.v / (medOf(x)?.v ?? 1), e: x => x.e, a: x => -x.a, d: x => x.r.dep, r: x => -(x.r.rating ?? 0) * 1e4 - x.r.nRev, n: x => x.r.age ?? 99, p0: x => x.pd[0] ?? Infinity, p1: x => x.pd[1] ?? Infinity,
+    // Near and good value: each km away weighs like costing double the district median, so a bargain a bit further out can beat an average place next door.
+    // Value counts no better than half the median, so a too-good-to-be-true outlier can't jump across the city.
+    w0: x => near(x, 0), w1: x => near(x, 1) }[sort];
   out.sort((x, y) => by(x) - by(y) || x.v - y.v);
   return out;
 }
@@ -718,7 +725,7 @@ const sizeText = r => `${r.sizeEst ? '~' : ''}${Math.round(r.m2)} m²`;
 const roomsText = r => r.beds ? r.beds + (r.beds > 1 ? ' rooms' : ' room') : '';
 const distLine = (r, pd = []) => {
   const parts = S && r.subM > 3000 ? [] : [`${subText(r)} ${dist(r.subM)}`]; // short term is nationwide, beyond the subway
-  [0, 1].forEach(i => { const p = placeAt(i); if (!p || r.lat == null) return; const name = stationName(p.name); if (name !== subText(r)) parts.push(`${name} ${dist(pd[i] ?? metres(r.lat, r.lng, p.at))}`); });
+  [0, 1].forEach(i => { const p = placeAt(i); if (!p || r.lat == null) return; if (p.name !== subText(r)) parts.push(`${p.name} ${dist(pd[i] ?? metres(r.lat, r.lng, p.at))}`); });
   return parts.join(' · ');
 };
 
@@ -833,7 +840,7 @@ function detailHtml(r, d) {
   const place = encodeURIComponent(r.complex.replace(/,/g, ' '));
   const kakao = `https://map.kakao.com/link/map/${place},${d.lat},${d.lng}`;
   const st = d.station[0].match(/^(.+?) \((.*)\)$/);
-  const placeRows = [0, 1].map(i => { const p = placeAt(i); return p ? [`${stationName(p.name)}, your place`, dist(metres(d.lat, d.lng, p.at))] : null; }).filter(Boolean);
+  const placeRows = [0, 1].map(i => { const p = placeAt(i); return p ? [`${p.name}, your place`, dist(metres(d.lat, d.lng, p.at))] : null; }).filter(Boolean);
   const schoolKind = n => /초등학교/.test(n) ? ', elementary school' : /중학교/.test(n) ? ', middle school' : /고등학교/.test(n) ? ', high school' : /대학교/.test(n) ? ', university' : '';
   const near = [...placeRows, [st ? `${stationName(st[1])}, ${lineText(st[2])}` : d.station[0], d.station[1]], ...d.near.filter(([n]) => !/유치원/.test(n)).map(([n, m]) => [n + schoolKind(n), m])];
   const tagged = [...d.opts.map(o => [o, OPTS[o]]), ...(d.tags ?? []).map(o => [o, TAGS[o]])].map(([o, en]) => helpBtn('', o, en ? o + ' · ' + en : o)).join('');
@@ -1065,7 +1072,13 @@ async function openMap() {
       iconCreateFunction: c => { const ms = c.getAllChildMarkers(), n = ms.reduce((sum, m) => sum + m.listings, 0), s = Math.round(28 + 10 * Math.log10(n)); return L.divIcon({ html: n.toLocaleString('en-US'), className: 'cluster' + (MED.some(Boolean) ? ' ' + shade(median(ms.map(m => m.below).filter(b => b !== null))) : ''), iconSize: [s, s] }); },
     });
     map.addLayer(cluster);
-    map.on('click', () => { $('mini').hidden = true; });
+    map.on('click', e => {
+      $('mini').hidden = true;
+      if (!picking) return;
+      picking = false;
+      $('pickNote').hidden = true;
+      addPlace({ name: $('placeQ').value.trim().split(',')[0] || 'Pinned place', at: [+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)] });
+    });
     mapStale = true;
     paintMap(true);
     return;
@@ -1094,6 +1107,7 @@ function setView(v) {
   $('list').hidden = v === 'map';
   $('compare').hidden = v !== 'saved';
   $('foot').hidden = v !== 'list';
+  if (v !== 'map') { picking = false; $('pickNote').hidden = true; }
   scrollTo(0, 0);
   if (v === 'map') openMap();
   if (v === 'saved') paintSaved();
@@ -1115,7 +1129,7 @@ function chipText() {
     ['budget', 'Budget', budget], ['area', 'Area', area], ['size', 'Size', size],
     ['rooms', 'Rooms', val('beds') ? val('beds') + '+' : null],
     ['age', 'Age', val('maxAge') === ANY ? 'Any' : '≤ ' + val('maxAge') + ' yrs', val('maxAge') !== 30],
-    ['places', 'Places', places.length ? places.map(stationName).join(', ') : null],
+    ['places', 'Places', places.length ? places.map(p => p.name).join(', ') : null],
     ['more', 'More', off || null],
     ['currency', 'Currency', CUR[cur][0] + ' ' + cur, cur !== 'KRW'],
   ].filter(c => !(S && c[0] === 'age'));
@@ -1131,18 +1145,18 @@ function paintPlaces() {
     const ctl = $('ctl_place' + i);
     ctl.hidden = !places[i];
     if (!places[i]) return;
-    ctl.querySelector('label').textContent = `Max distance to ${stationName(places[i])}`;
-    ctl.insertAdjacentHTML('beforebegin', `<div class="place">${esc(stationName(places[i]))} <button type="button" data-unplace="${i}">Remove</button></div>`);
+    ctl.querySelector('label').textContent = `Max distance to ${places[i].name}`;
+    ctl.insertAdjacentHTML('beforebegin', `<div class="place">${esc(places[i].name)} <button type="button" data-unplace="${i}">Remove</button></div>`);
   });
   $('placeAdd').hidden = places.length >= 2;
-  $('placeLabel').textContent = places.length ? 'Add a second place' : 'Add a place, like work or family';
+  $('placeLabel').textContent = places.length ? 'Add a second place' : 'Add a place, like work or family: a station or an address';
   paintSort();
 }
 const SORTS = S ? [['v', 'Best value first'], ['e', 'Lowest price'], ['r', 'Top rated'], ['a', 'Largest usable size'], ['d', 'Lowest deposit']]
   : [['v', 'Best value first'], ['e', 'Lowest real cost'], ['a', 'Largest usable size'], ['n', 'Newest building'], ['d', 'Lowest deposit']];
 function paintSort() {
   const cur = $('sort').value || 'v';
-  $('sort').innerHTML = [...SORTS, ...places.map((n, i) => ['p' + i, 'Closest to ' + stationName(n)])].map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('');
+  $('sort').innerHTML = [...SORTS, ...places.flatMap((p, i) => [['w' + i, 'Good value near ' + p.name], ['p' + i, 'Closest to ' + p.name]])].map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('');
   $('sort').value = cur;
   if (!$('sort').value) $('sort').value = 'v';
 }
@@ -1175,19 +1189,60 @@ addEventListener('scroll', () => { if (sortMenu.matches(':popover-open')) sortMe
 $('placeQ').addEventListener('input', () => {
   const q = $('placeQ').value.trim().toLowerCase();
   if (!q) { $('placeHits').innerHTML = ''; return; }
-  const hits = [...new Set(DATA.stations)].filter(n => !places.includes(n) && (n.includes(q) || stationName(n).toLowerCase().includes(q))).sort((a, b) => stationName(a).toLowerCase().indexOf(q) - stationName(b).toLowerCase().indexOf(q)).slice(0, 6);
-  $('placeHits').innerHTML = hits.length ? hits.map(n => `<button type="button" data-place="${esc(n)}">${esc(stationName(n))} <small>${esc(n)}</small></button>`).join('') : '<p class="note">No station with that name.</p>';
+  const hits = [...new Set(DATA.stations)].filter(n => !places.some(p => p.name === stationName(n)) && (n.includes(q) || stationName(n).toLowerCase().includes(q))).sort((a, b) => stationName(a).toLowerCase().indexOf(q) - stationName(b).toLowerCase().indexOf(q)).slice(0, 6);
+  $('placeHits').innerHTML = hits.map(n => `<button type="button" data-place="${esc(n)}">${esc(stationName(n))} <small>${esc(n)}</small></button>`).join('')
+    + `<button type="button" data-geo>Find the address “${esc($('placeQ').value.trim())}”</button><button type="button" data-pick>Pick it on the map instead</button>`;
+});
+$('placeQ').addEventListener('keydown', e => { if (e.key === 'Enter') $('placeHits').querySelector('[data-geo]')?.click(); });
+
+// Addresses go through OpenStreetMap's geocoder. It reads Korean road names best romanized with a hyphen (Hangang-daero 372), so that is tried first;
+// a unit or postcode after a comma is dropped. You pick from what it finds, since a near miss can land on the wrong street.
+async function geocode(q) {
+  const first = q.split(',')[0].trim();
+  const roman = first.replace(/[가-힣]+/g, w => { const m = w.match(/^(.+?)(대로|로|길)$/); return m ? rom(m[1]) + '-' + rom(m[2]).toLowerCase() : rom(w); });
+  for (const t of [...new Set([roman, first, q])]) {
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=4&countrycodes=kr&q=' + encodeURIComponent(t));
+    const hits = res.ok ? await res.json() : [];
+    if (hits.length) return { hits, name: first };
+    await new Promise(r => setTimeout(r, 1100)); // their limit is one request a second
+  }
+  return { hits: [], name: first };
+}
+const addPlace = p => {
+  places.push(p); setVal('place' + (places.length - 1), ANY); $('placeQ').value = ''; $('placeHits').innerHTML = '';
+  paintPlaces();
+  if ($('sort').value === 'v') $('sort').value = 'w' + (places.length - 1); // you added it to see what's near it
+  update();
+};
+let found = [];
+$('placeHits').addEventListener('click', async e => {
+  if (e.target.closest('[data-geo]')) {
+    $('placeHits').innerHTML = '<p class="note">Looking up the address…</p>';
+    let r;
+    try { r = await geocode($('placeQ').value.trim()); } catch { r = { hits: [] }; }
+    found = r.hits.map(h => ({ name: r.name, at: [+h.lat, +h.lon], label: h.display_name.split(', ').slice(0, -1).reverse().join(' ') })); // Korean order, country dropped
+    $('placeHits').innerHTML = (found.length ? '<p class="note">Pick the right one:</p>' + found.map((f, i) => `<button type="button" data-found="${i}">${esc(f.label)}</button>` ).join('') : '<p class="note">Couldn’t find that address. Try it romanized, like Hangang-daero 372, or pick it on the map.</p>')
+      + '<button type="button" data-pick>Pick it on the map instead</button>';
+  }
+  const f = e.target.closest('[data-found]');
+  if (f) addPlace(found[+f.dataset.found]);
+  if (e.target.closest('[data-pick]')) {
+    picking = true;
+    if (sheet.open) sheet.close();
+    setView('map');
+    $('pickNote').hidden = false;
+  }
 });
 document.addEventListener('click', e => {
   const add = e.target.closest?.('[data-place]'), rm = e.target.closest?.('[data-unplace]');
   if (!add && !rm) return;
-  if (add) { places.push(add.dataset.place); setVal('place' + (places.length - 1), ANY); $('placeQ').value = ''; $('placeHits').innerHTML = ''; }
+  if (add) { addPlace(stationPlace(add.dataset.place)); return; }
   else {
     const i = +rm.dataset.unplace;
     places.splice(i, 1);
     if (i === 0) setVal('place0', val('place1'));
     setVal('place1', ANY);
-    if (/^p\d/.test($('sort').value)) $('sort').value = 'v';
+    if (/^[pw]\d/.test($('sort').value)) $('sort').value = 'v';
   }
   paintPlaces();
   update();
