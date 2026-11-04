@@ -13,7 +13,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Help } from "@/components/Help"
 import { DATA, GROUPS, S } from "@/lib/data"
 import { ANY, HIDDEN_SLIDERS, SLIDERS, chipText, defaults, resetSection, stationPlace, type Filters, type Place, type SecKey } from "@/lib/engine"
-import { CUR, PTYPES, STAYS, UNITS, fx, rom, stationName, type Cur } from "@/lib/text"
+import { CUR, PTYPES, STAYS, UNITS, districtText, fx, rom, stationName, type Cur } from "@/lib/text"
 
 export type Set = (fn: (f: Filters) => Filters) => void
 export const TITLES: Record<SecKey, string> = { currency: "Currency", stay: "Your stay", budget: "Budget", area: "Area", size: "Size", rooms: "Rooms", age: "Building age", places: "Your places", more: "More filters" }
@@ -237,10 +237,16 @@ export function Section({ sec, ...p }: SecProps & { sec: SecKey }) {
     case "more":
       return (
         <>
-          {checkChips(S ? Object.entries(PTYPES).map(([k, l]) => ["p_" + k, l]) : [["t_apt", "Apartments"], ["t_off", "Officetels"], ["t_jeonse", "Jeonse 전세"], ["t_monthly", "Wolse 월세"]], f, set, "Types")}
-          {!DATA.site && checkChips([["t_dabang", "Dabang"], ["t_zigbang", "Zigbang"]], f, set, "Sources")}
+          {checkChips(S ? Object.entries(PTYPES).map(([k, l]) => ["p_" + k, l]) : [["t_apt", "Apartments"], ["t_off", "Officetels"]], f, set, "Building types")}
+          {!S && checkChips([["t_monthly", "Monthly rent"], ["t_jeonse", "Deposit only, no rent"]], f, set, "How you pay")}
+          {!DATA.site && (
+            <>
+              <Note>Listing sites</Note>
+              {checkChips([["t_dabang", "Dabang"], ["t_zigbang", "Zigbang"]], f, set, "Listing sites")}
+            </>
+          )}
           <Check id="hideLow" f={f} set={set}>
-            Hide low floors (저층, 1st and 2nd)
+            Hide low floors (1st and 2nd)
           </Check>
           {!S && (
             <>
@@ -254,7 +260,7 @@ export function Section({ sec, ...p }: SecProps & { sec: SecKey }) {
                 Single rooms in a shared or split unit (their size is misleading)
               </Check>
               <Check id="shortTerm" f={f} set={set}>
-                Short-term rentals (단기)
+                Short-term rentals
               </Check>
               <Check id="lh" f={f} set={set}>
                 LH public housing (has eligibility rules)
@@ -280,48 +286,69 @@ export function Section({ sec, ...p }: SecProps & { sec: SecKey }) {
   }
 }
 
+// Each province folds away, so the district chips don't make the list endless. Chips show the English name; the Korean is in the tooltip.
 function Areas({ f, set }: SecProps) {
   const on = new Set(f.a)
   return (
     <>
       <Input type="search" placeholder="Search name, neighbourhood, station" aria-label="Search listings" className="h-11 text-base" value={f.q} onChange={(e) => set((f) => ({ ...f, q: e.target.value }))} />
-      {GROUPS.map(({ province, list }) => {
+      {GROUPS.map(({ province, list }, gi) => {
         const keys = list.map((i) => DATA.regions[i].key)
-        const all = keys.every((k) => on.has(k))
+        const n = keys.filter((k) => on.has(k)).length
+        const all = n === keys.length
         return (
-          <div key={province} className="flex flex-col gap-1.5">
-            <Button
-              variant="ghost"
-              className="h-9 self-start px-0 text-base font-bold hover:bg-transparent"
-              onClick={() => set((f) => ({ ...f, a: all ? f.a.filter((k) => !keys.includes(k)) : [...new Set([...f.a, ...keys])] }))}
-            >
-              {province} <span className="text-sm font-medium text-muted-foreground">All</span>
-            </Button>
-            <Chips
-              label={province}
-              multiple
-              items={list.map((i) => [DATA.regions[i].key, DATA.regions[i].label])}
-              on={keys.filter((k) => on.has(k))}
-              onChange={(v) => set((f) => ({ ...f, a: [...f.a.filter((k) => !keys.includes(k)), ...v] }))}
-            />
-          </div>
+          <Collapsible key={province} defaultOpen={n > 0 || (gi === 0 && !on.size)} className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <CollapsibleTrigger className="group flex min-h-9 items-center gap-1.5 text-base font-bold">
+                {province}
+                <span className="text-sm font-medium text-muted-foreground">{n ? `${n} of ${keys.length}` : keys.length}</span>
+                <ChevronDownIcon className="size-4 transition-transform group-data-panel-open:rotate-180" />
+              </CollapsibleTrigger>
+              <Button variant="ghost" size="sm" onClick={() => set((f) => ({ ...f, a: all ? f.a.filter((k) => !keys.includes(k)) : [...new Set([...f.a, ...keys])] }))}>
+                {all ? "Clear" : "Select all"}
+              </Button>
+            </div>
+            <CollapsibleContent>
+              <Chips
+                label={province}
+                multiple
+                items={list.map((i) => [DATA.regions[i].key, districtText(DATA.regions[i].label), DATA.regions[i].label])}
+                on={keys.filter((k) => on.has(k))}
+                onChange={(v) => set((f) => ({ ...f, a: [...f.a.filter((k) => !keys.includes(k)), ...v] }))}
+              />
+            </CollapsibleContent>
+          </Collapsible>
         )
       })}
     </>
   )
 }
 
-const Sec = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="flex flex-col gap-4">
-    <h3 className="text-base font-bold">{title}</h3>
-    {children}
-  </section>
-)
-
-// Desktop: every section in a sticky sidebar.
-export function Aside(p: SecProps) {
+// Desktop: every section in a sticky sidebar, folded to one line that shows its current value. Budget and anything you've changed start open.
+function Sec({ title, value, open, children }: { title: string; value: string; open: boolean; children: ReactNode }) {
   return (
-    <aside className="sticky top-[76px] flex max-h-[calc(100dvh-92px)] w-75 flex-none flex-col gap-6 overflow-y-auto rounded-2xl border bg-card p-5 [scrollbar-width:thin]">
+    <Collapsible defaultOpen={open} className="border-t pt-3">
+      <CollapsibleTrigger className="group flex min-h-9 w-full items-center justify-between gap-3 text-left">
+        <h3 className="text-base font-bold">{title}</h3>
+        <span className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+          <span className="truncate">{value}</span>
+          <ChevronDownIcon className="size-4 flex-none transition-transform group-data-panel-open:rotate-180" />
+        </span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="flex flex-col gap-4 pt-3 pb-1">{children}</CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+export function Aside(p: SecProps) {
+  const vals = new Map(chipText(p.f).map(([k, , v, active]) => [k, { v, active }]))
+  const [opened] = useState(() => new Set(SECS.filter((k) => k === "budget" || vals.get(k)?.active)))
+  const value = (k: SecKey) => {
+    const v = vals.get(k)?.v
+    return k === "more" ? (v ? v + " changed" : "Defaults") : k === "places" ? (v ?? "None") : (v ?? "Any")
+  }
+  return (
+    <aside className="sticky top-[76px] flex max-h-[calc(100dvh-92px)] w-75 flex-none flex-col gap-3 overflow-y-auto rounded-2xl border bg-card p-5 [scrollbar-width:thin]">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Filters</h2>
         <Button variant="ghost" size="xl" onClick={() => p.set((f) => ({ ...defaults(), u: f.u }))}>
@@ -329,7 +356,7 @@ export function Aside(p: SecProps) {
         </Button>
       </div>
       {SECS.map((k) => (
-        <Sec key={k} title={TITLES[k]}>
+        <Sec key={k} title={TITLES[k]} value={value(k)} open={opened.has(k)}>
           <Section sec={k} {...p} />
         </Sec>
       ))}

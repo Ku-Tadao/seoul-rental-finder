@@ -71,8 +71,8 @@ export const districtText = (label: string) => (/[A-Za-z]/.test(label) ? label.s
 
 // Korean terms, explained on hover and on tap.
 export const HELP: Record<string, string> = {
-  jeonse: "Jeonse 전세: one large deposit instead of monthly rent. You get it back when you move out.",
-  wolse: "Wolse 월세: monthly rent plus a smaller deposit that you get back when you move out.",
+  jeonse: "Deposit only: you pay one large deposit instead of monthly rent, and get it back when you move out. Koreans call this jeonse (전세).",
+  wolse: "Rent: monthly rent plus a smaller deposit that you get back when you move out. Koreans call this wolse (월세).",
   deposit: "Deposit 보증금: money you hand over and get back when you move out.",
   rent: "Monthly rent 월세.",
   fee: "Maintenance 관리비: the monthly building fee.",

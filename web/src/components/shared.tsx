@@ -57,7 +57,7 @@ export function ValueBadge({ x, className }: { x: X; className?: string }) {
   )
 }
 
-export const termText = (r: Row) => (r.deal ? "Wolse" : "Jeonse")
+export const termText = (r: Row) => (r.deal ? "Rent" : "Deposit only")
 export const Term = ({ r }: { r: Row }) => (
   <Help text={r.deal ? HELP.wolse : HELP.jeonse} className="relative z-2">
     {termText(r)}
