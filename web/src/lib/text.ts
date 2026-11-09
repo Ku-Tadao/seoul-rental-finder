@@ -115,7 +115,10 @@ export const COVERS: Record<string, string> = { "일반(공용) 관리비": "Com
 export const OPTS: Record<string, string> = { 옷장: "Wardrobe", 붙박이장: "Built-in closet", 신발장: "Shoe cabinet", 인덕션: "Induction hob", 전자레인지: "Microwave", 싱크대: "Sink", 비데: "Bidet", 욕조: "Bathtub", 샤워부스: "Shower booth", 천장형: "Ceiling air conditioning", 벽걸이형: "Wall air conditioning", 스탠드형: "Standing air conditioning", 에어컨: "Air conditioning", 베란다: "Veranda", 테라스: "Terrace", 마당: "Yard", 무인택배함: "Parcel lockers", 화재경보기: "Fire alarm", 가스레인지: "Gas stove", 가스오븐: "Gas oven", 냉장고: "Fridge", 세탁기: "Washing machine", 건조기: "Dryer", 식기세척기: "Dishwasher", 식탁: "Dining table", 책상: "Desk", 책장: "Bookcase", 침대: "Bed", 쇼파: "Sofa", 소파: "Sofa", TV: "TV" }
 const LINES: Record<string, string> = { 경의중앙선: "Gyeongui-Jungang", 공항철도: "AREX", 신분당선: "Shinbundang", 수인분당선: "Suin-Bundang", 분당선: "Bundang", 경춘선: "Gyeongchun", 경강선: "Gyeonggang", 서해선: "Seohae", 우이신설선: "Ui-Sinseol", 신림선: "Sillim", 김포골드라인: "Gimpo Goldline", 의정부경전철: "Uijeongbu LRT", 에버라인: "Everline", 인천1호선: "Incheon 1", 인천2호선: "Incheon 2" }
 export const lineText = (s: string) => s.split(",").map((l) => LINES[l] ?? l.replace(/^(\d+)호선$/, "Line $1")).join(", ")
-export const floorText = (f: string) => (f === "저층" ? "Low floor" : f === "중층" ? "Mid floor" : f === "고층" ? "High floor" : /^\d+층$/.test(f) ? "Floor " + parseInt(f) : f === "-" ? "" : f)
+const FLOORS: Record<string, string> = { 저층: "Low floor", 중층: "Mid floor", 고층: "High floor", 반지하: "Semi-basement", 옥탑방: "Rooftop", "-1": "Basement", "-": "" }
+export const floorText = (f: string) => FLOORS[f] ?? (/^\d+층$/.test(f) ? "Floor " + parseInt(f) : f)
+// Straight-line metres to a walk: streets add about a fifth, at 80 m a minute. Past 1.5 km it's not a walk.
+export const walkText = (m: number) => (m <= 1500 ? `${Math.max(1, Math.round((m * 1.2) / 80))} min walk` : "")
 export const koDate = (s: unknown) => {
   const m = String(s).match(/^(\d{4})\.?\s*(\d{1,2})(?:\.(\d{1,2}))?/)
   if (!m) return String(s)

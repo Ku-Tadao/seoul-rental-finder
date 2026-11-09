@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react"
-import { BedDoubleIcon, Building2Icon, BuildingIcon, CalendarClockIcon, CheckIcon, DoorOpenIcon, HouseIcon, InfoIcon, MapPinIcon, NavigationIcon, RulerIcon, SparklesIcon, StoreIcon, TrainFrontIcon, TriangleAlertIcon, UsersIcon, type LucideIcon } from "lucide-react"
+import { BedDoubleIcon, Building2Icon, BuildingIcon, CalendarClockIcon, CheckIcon, DoorOpenIcon, HouseIcon, InfoIcon, LayersIcon, MapPinIcon, NavigationIcon, RulerIcon, SparklesIcon, StoreIcon, TrainFrontIcon, TriangleAlertIcon, UsersIcon, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
 
 import { Badge } from "@/components/ui/badge"
@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { ChangeLine, DepSmall, FavButton, Photo, Term, ValueBadge, distParts, termText } from "@/components/shared"
 import { S, type Row } from "@/lib/data"
 import { totalText, type X } from "@/lib/engine"
-import { areaKo, areaText, fx, money, priceText, rateText, roomsText, sizeText, typeText } from "@/lib/text"
+import { areaKo, areaText, dist, floorText, fx, money, priceText, rateText, roomsText, sizeText, typeText, walkText } from "@/lib/text"
 
 const TYPE_ICON: Record<string, LucideIcon> = { OFFICETEL: BuildingIcon, STUDIO: DoorOpenIcon, APARTMENT: Building2Icon, VILLA: HouseIcon, DETACHED: HouseIcon, MIXED_USE: StoreIcon, GOSIWON: DoorOpenIcon, SHARE_HOUSE: UsersIcon }
 const typeIcon = (r: Row) => (S ? (TYPE_ICON[r.pt] ?? DoorOpenIcon) : r.cat ? BuildingIcon : Building2Icon)
@@ -81,8 +81,9 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
   const near = distParts(r, x.pd)
   return (
     <Card className={cn("relative isolate min-w-0 gap-0 py-0", gone && "opacity-55")}>
-      <div className="relative">
-        <Photo r={r} gone={gone} className="aspect-4/3 max-lg:has-[span]:aspect-auto max-lg:has-[span]:h-24 max-lg:[&>span]:hidden" />
+      {/* No photo: a short strip, grown to match a photo card beside it in the grid. */}
+      <div className={cn("relative flex flex-col", !r.photo && "grow")}>
+        <Photo r={r} gone={gone} className="aspect-4/3 has-[span]:aspect-auto has-[span]:min-h-24 has-[span]:grow [&>span]:hidden" />
         <AreaTag r={r} />
         {gone ? (
           <Badge variant="none" size="lg" className="absolute bottom-3 left-3 z-2">
@@ -118,14 +119,16 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
           <Fact icon={typeIcon(r)}>{typeText(r)}</Fact>
           <Fact icon={RulerIcon}>{sizeText(r)}</Fact>
           {r.beds ? <Fact icon={BedDoubleIcon}>{roomsText(r)}</Fact> : null}
+          {floorText(r.floor) && <Fact icon={LayersIcon}>{floorText(r.floor)}</Fact>}
           {!S && r.age !== null && (r.age === 0 ? <Fact icon={SparklesIcon} hi>New build</Fact> : <Fact icon={CalendarClockIcon}>{r.age + (r.age === 1 ? " yr" : " yrs")}</Fact>)}
         </div>
         <div className="flex flex-col gap-0.5 text-sm leading-snug [overflow-wrap:anywhere] text-muted-foreground">
           {near.length > 0 && (
             <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-              {near.map(([n, d, mine]) => (
+              {near.map(([n, m, mine]) => (
                 <Line key={n} icon={mine ? NavigationIcon : TrainFrontIcon}>
-                  {n} <span className="font-medium text-foreground/80">{d}</span>
+                  {n} <span className="font-medium text-foreground/80">{dist(m)}</span>
+                  {walkText(m) && " · " + walkText(m)}
                 </Line>
               ))}
             </div>

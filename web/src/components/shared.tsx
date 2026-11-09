@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Help } from "@/components/Help"
 import { S, type Chg, type Row } from "@/lib/data"
 import { badgeText, belowOf, shade, whyText, type Why, type X } from "@/lib/engine"
-import { HELP, ago, changeText, dist, fx, metres, money, photoUrl, subText } from "@/lib/text"
+import { HELP, ago, changeText, fx, metres, money, photoUrl, subText } from "@/lib/text"
 
 // Saved listings: which keys are starred, and the toggle. App provides it.
 export const FavsCtx = createContext<{ has: (k: string) => boolean; toggle: (k: string) => void }>({ has: () => false, toggle: () => {} })
@@ -65,12 +65,12 @@ export const Term = ({ r }: { r: Row }) => (
 )
 export const DepSmall = ({ r }: { r: Row }) => (r.deal ? <small className="text-sm font-medium tracking-normal text-muted-foreground">{r.dep ? "+ " + money(r.dep) + " deposit" : "no deposit"}</small> : null)
 
-// Nearest station, then your places, as on the card: [name, distance, is one of your places].
+// Nearest station, then your places, as on the card: [name, metres, is one of your places].
 export function distParts(r: Row, pd: (number | null)[] = []) {
-  const parts: [string, string, boolean][] = S && r.subM > 3000 ? [] : [[subText(r), dist(r.subM), false]] // short term is nationwide, beyond the subway
+  const parts: [string, number, boolean][] = S && r.subM > 3000 ? [] : [[subText(r), r.subM, false]] // short term is nationwide, beyond the subway
   fx.places.forEach((p, i) => {
     if (r.lat == null || r.lng == null || p.name === subText(r)) return
-    parts.push([p.name, dist(pd[i] ?? metres(r.lat, r.lng, p.at)), true])
+    parts.push([p.name, pd[i] ?? metres(r.lat, r.lng, p.at), true])
   })
   return parts
 }
