@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Exports Zigbang apartment and officetel rentals around Seoul to zigbang_rentals.jsonl (one JSON per line), same area as the Dabang export.
 //   node zigbang_export.js --selftest
-// Re-running resumes: ids go to zigbang_ids.json first, then details are appended. Stops on 403/429. Agent data is never stored.
+// Re-running resumes: ids go to zigbang_ids.json first (rebuilt each run, a few minutes), then details are appended. Stops on 403/429. Agent data is never stored.
 const fs = require('fs');
 const assert = require('assert');
 
@@ -9,7 +9,8 @@ const HEADERS = { accept: 'application/json', referer: 'https://www.zigbang.com/
 const API = 'https://apis.zigbang.com';
 const BBOX = { s: 37.12, w: 126.6, n: 37.8, e: 127.4 }; // bounds of the Dabang export
 const IDS = 'zigbang_ids.json', DANJIS = 'zigbang_danjis.json', OUT ='zigbang_rentals.jsonl', WORKERS = 2, DELAY_MS = 250;
-const MAX_ID_AGE_MS = 20 * 3600e3; // the id list is rebuilt once a day
+const MAX_ID_AGE_MS = 30 * 60e3; // the id pass takes minutes, so every hourly run rebuilds it
+const PROVINCES = ['11', '28', '41']; // Seoul, Incheon, Gyeonggi: every district the box touches
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function get(path) {
@@ -41,31 +42,46 @@ function cells({ s, w, n, e }) {
 
 async function collectIds() {
   if (fs.existsSync(IDS) && Date.now() - fs.statSync(IDS).mtimeMs < MAX_ID_AGE_MS) return JSON.parse(fs.readFileSync(IDS, 'utf8'));
-  const ids = new Set(), danjis = new Set(), list = cells(BBOX);
+  const ids = new Set(), list = cells(BBOX);
   const inBox = o => o.lat >= BBOX.s && o.lat <= BBOX.n && o.lng >= BBOX.w && o.lng <= BBOX.e;
   for (const [i, c] of list.entries()) {
     const off = await get(`/house/property/v1/items/officetels?geohash=${c}&salesPriceMin=0&depositMin=0&rentMin=0`);
     for (const it of off?.items ?? []) if (inBox(it)) ids.add(it.id);
-    for (const tranType of ['rental', 'charter']) {
-      const d = await get(`/apt/locals/items/on-danjis?geohash=${c}&tranType=${tranType}&markerType=large`);
-      for (const x of d?.filtered ?? []) if (inBox(x)) danjis.add(x.id); // itemCount is always 0 here, so every complex gets asked for its listings
-    }
-    if (i % 20 === 0) console.error(`cell ${i} of ${list.length}: ${ids.size} officetels, ${danjis.size} complexes`);
+    if (i % 50 === 0) console.error(`cell ${i} of ${list.length}: ${ids.size} officetels`);
   }
-  console.error(`${ids.size} officetels, ${danjis.size} complexes with rentals`);
-  let n = 0;
+  // Apartments come a whole district at a time (the site's own district list, 20 per page at most), grouped by complex.
+  const itemsOf = new Map();
+  for (const p of PROVINCES) for (const { code } of (await get(`/apt/locals/local2?code=${p}`))?.results ?? []) {
+    for (let offset = 0; ; offset += 20) {
+      const r = await get(`/apt/locals/${code}/item-catalogs?tranTypeIn=rental&tranTypeIn=charter&offset=${offset}&limit=20`);
+      if (!r) throw new Error(`district ${code} failed at ${offset}`); // a partial list would drop live listings
+      for (const it of r.list) for (const x of it.itemIdList ?? []) if (x.itemSource === 'zigbang') {
+        if (!itemsOf.has(it.areaDanjiId)) itemsOf.set(it.areaDanjiId, new Set());
+        itemsOf.get(it.areaDanjiId).add(x.itemId);
+      }
+      if (offset + 20 >= r.count) break;
+    }
+  }
+  // Item details don't name their complex, so complexes are kept alongside; their details are cached across runs since they barely change. The office phone is left out.
+  const cached = new Map(fs.existsSync(DANJIS) ? JSON.parse(fs.readFileSync(DANJIS, 'utf8')).filter(d => d.lat != null).map(d => [d.id, d]) : []);
   const out = [];
-  for (const id of danjis) {
-    const items = [];
-    for (let offset = 0; ; offset += 50) {
-      const r = await get(`/apt/danjis/${id}/item-catalogs?tranTypeIn[0]=charter&tranTypeIn[1]=rental&includeOfferItem=true&offset=${offset}&limit=50`);
-      for (const it of r?.list ?? []) for (const x of it.itemIdList ?? []) if (x.itemSource === 'zigbang') { ids.add(x.itemId); items.push(x.itemId); }
-      if (!r || offset + 50 >= r.totalCount) break;
+  let fetched = 0;
+  for (const [id, items] of itemsOf) {
+    let d = cached.get(id);
+    if (!d) {
+      const x = await get(`/apt/danjis/${id}`);
+      if (!x) continue;
+      d = { id, name: x.name, approve: x.사용승인일, households: x.총세대수, buildings: x.총동수, topFloor: x.최고층수, parking: x.가구당주차대수, heating: x.난방방식, road: x.roadAddress, lat: x.lat, lng: x.lng };
+      if (++fetched % 200 === 0) console.error(`${fetched} new complexes`);
     }
-    // Item details don't name their complex, so complexes with listings are kept alongside. The office phone is left out.
-    if (items.length) { const d = await get(`/apt/danjis/${id}`); if (d) out.push({ id, items, name: d.name, approve: d.사용승인일, households: d.총세대수, buildings: d.총동수, topFloor: d.최고층수, parking: d.가구당주차대수, heating: d.난방방식, road: d.roadAddress }); }
-    if (++n % 200 === 0) console.error(`complex ${n} of ${danjis.size}: ${ids.size} ids`);
+    // Complexes outside the box stay in the file with no items, so they aren't looked up again.
+    d = { ...d, items: inBox(d) ? [...items] : [] };
+    out.push(d);
+    if (inBox(d)) for (const i of items) ids.add(i);
+    // A first run looks up thousands of complexes and can hit the time limit: keep what it found so the next run carries on.
+    if (!cached.has(id)) { cached.set(id, d); if (fetched % 200 === 0) fs.writeFileSync(DANJIS, JSON.stringify([...cached.values()])); }
   }
+  console.error(`${ids.size} ids, ${out.filter(d => d.items.length).length} complexes in the box (${fetched} newly looked up)`);
   fs.writeFileSync(DANJIS, JSON.stringify(out));
   const arr = [...ids];
   fs.writeFileSync(IDS, JSON.stringify(arr));

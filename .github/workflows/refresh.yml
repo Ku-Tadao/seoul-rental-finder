@@ -1,13 +1,13 @@
 name: Refresh listings
 on:
   schedule:
-    # 07:23, 12:23 and 19:23 in Seoul: overnight, morning and end-of-day listings. At least 5h apart so backfill runs barely queue.
-    - cron: '23 22,3,10 * * *'
+    # Hourly: every source now finishes its list pass in minutes, so new listings show up within the hour. A long backfill carries on over several runs.
+    - cron: '23 * * * *'
   workflow_dispatch:
     inputs:
       minutes:
         description: Scrape time limit in minutes
-        default: '300'
+        default: '50'
 permissions:
   contents: read
   pages: write
@@ -34,7 +34,7 @@ jobs:
           key: state-${{ github.run_id }}
           restore-keys: state-
       - name: Scrape
-        run: timeout "$(( ${{ inputs.minutes || 300 }} * 60 ))" bash refresh.sh || true
+        run: timeout "$(( ${{ inputs.minutes || 50 }} * 60 ))" bash refresh.sh || true
       - name: Drop torn lines and removed listings
         run: |
           node compact_jsonl.js dabang_details.jsonl dabang_rentals.json
