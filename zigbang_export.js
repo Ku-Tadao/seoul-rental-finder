@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Exports Zigbang apartment and officetel rentals around Seoul to zigbang_rentals.jsonl (one JSON per line), same area as the Dabang export.
 //   node zigbang_export.js --selftest
-// Re-running resumes: ids go to zigbang_ids.json first (rebuilt each run, a few minutes), then details are appended. Stops on 403/429. Agent data is never stored.
+// Re-running resumes: ids go to zigbang_ids.json first (rebuilt each run, a few minutes), prices are checked every third hour, then details are appended. Stops on 403/429. Agent data is never stored.
 const fs = require('fs');
 const assert = require('assert');
 
@@ -13,8 +13,8 @@ const MAX_ID_AGE_MS = 30 * 60e3; // the id pass takes minutes, so every hourly r
 const PROVINCES = ['11', '28', '41']; // Seoul, Incheon, Gyeonggi: every district the box touches
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function get(path) {
-  const res = await fetch(API + path, { headers: HEADERS });
+async function get(path, body) {
+  const res = await fetch(API + path, body ? { method: 'POST', headers: { ...HEADERS, 'content-type': 'application/json' }, body: JSON.stringify(body) } : { headers: HEADERS });
   await sleep(DELAY_MS);
   if (res.status === 403 || res.status === 429) throw Object.assign(new Error(`HTTP ${res.status}`), { fatal: true });
   if (!res.ok) return null;
@@ -88,6 +88,30 @@ async function collectIds() {
   return arr;
 }
 
+// Every third hourly run: today's price of every listing, 15 to a request. A saved detail whose price or maintenance changed is dropped, so it's fetched again below.
+const sameMoney = (a, b) => Math.round((a ?? 0) * 10) === Math.round((b ?? 0) * 10);
+async function checkPrices(ids) {
+  if (!fs.existsSync(OUT) || new Date().getUTCHours() % 3) return ids;
+  const now = new Map(), batches = [];
+  for (let i = 0; i < ids.length; i += 15) batches.push(ids.slice(i, i + 15));
+  const worker = async () => {
+    while (batches.length) for (const it of (await get('/house/property/v1/items/list', { domain: 'zigbang', item_ids: batches.shift() }))?.items ?? []) now.set(it.item_id, [it.deposit, it.rent, it.manage_cost == null ? null : it.manage_cost / 1e4]);
+  };
+  await Promise.all(Array.from({ length: WORKERS }, worker));
+  let changed = 0;
+  const keep = fs.readFileSync(OUT, 'utf8').split('\n').filter(l => {
+    try {
+      const { id, item } = JSON.parse(l), p = now.get(id);
+      if (!item || !p || (sameMoney(p[0], item.price.deposit) && sameMoney(p[1], item.price.rent) && sameMoney(p[2], item.manageCost?.amount))) return true;
+    } catch { return false; } // a torn line
+    changed++;
+    return false;
+  });
+  fs.writeFileSync(OUT, keep.map(l => l + '\n').join(''));
+  console.error(`prices: ${now.size} checked, ${changed} changed`);
+  return ids;
+}
+
 async function fetchDetails(ids) {
   const done = new Set();
   if (fs.existsSync(OUT)) for (const l of fs.readFileSync(OUT, 'utf8').split('\n')) if (l) done.add(JSON.parse(l).id);
@@ -116,4 +140,4 @@ if (process.argv.includes('--selftest')) {
   const c = cells({ s: 37.5, w: 127, n: 37.52, e: 127.02 });
   assert.ok(c.includes(geohash(37.51, 127.01, 5)));
   console.log('selftest ok');
-} else collectIds().then(fetchDetails).catch(e => { console.error(e.message); process.exit(1); });
+} else collectIds().then(checkPrices).then(fetchDetails).catch(e => { console.error(e.message); process.exit(1); });

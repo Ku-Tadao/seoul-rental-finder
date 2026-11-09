@@ -1,4 +1,4 @@
-import { DATA, S, type Row } from "@/lib/data"
+import { DATA, S, type Chg, type Money3, type Row } from "@/lib/data"
 
 // Money is stored in 만원 (₩10,000), as both sites give it. Other currencies use the day's rate, fetched the first time one is picked.
 export const CUR = { KRW: ["₩", "Won"], EUR: ["€", "Euro"], USD: ["$", "US dollar"], RUB: ["₽", "Russian rouble"], UAH: ["₴", "Ukrainian hryvnia"] } as const
@@ -22,6 +22,24 @@ export const perM2 = (v: number) => {
   if (shownCur() === "KRW") return "₩" + (v * 10).toFixed(1) + "k"
   const n = conv(v)
   return CUR[fx.cur][0] + n.toFixed(n < 10 ? 2 : n < 1000 ? 1 : 0)
+}
+export const ago = (t: number) => {
+  const m = (Date.now() / 1000 - t) / 60
+  return m < 60 ? Math.max(1, Math.round(m)) + " min ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago"
+}
+// What a change changed, and whether the listing got cheaper (-1) or dearer (1) for it.
+export function changeText(c: Chg): { text: string; dir: number } {
+  if (c[1] === "n") return { text: "New", dir: 0 }
+  const [, a, b] = c
+  const price = (x: Money3) => (S ? money(x[1]) + " a week" : x[1] ? money(x[0]) + "/" + money(x[1]) : money(x[0]))
+  const fee = (v: number | null) => (v == null ? "unknown" : money(v))
+  const parts = [
+    (S ? a[1] !== b[1] : a[0] !== b[0] || a[1] !== b[1]) && `Price ${price(a)} → ${price(b)}`,
+    S && a[0] !== b[0] && `Deposit ${money(a[0])} → ${money(b[0])}`,
+    a[2] !== b[2] && `Maintenance ${fee(a[2])} → ${fee(b[2])}`,
+  ].filter(Boolean)
+  const cost = (x: Money3) => x[1] + (x[2] ?? 0) + (S ? 0 : (x[0] * fx.rate) / 1200)
+  return { text: parts.join(" · "), dir: Math.sign(cost(b) - cost(a)) }
 }
 export const won = (v: number) => money(v / 1e4)
 export const dist = (m: number) => (m >= 1000 ? (m / 1000).toFixed(1) + " km" : Math.round(m) + " m")

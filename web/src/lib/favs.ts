@@ -1,4 +1,4 @@
-import { BY_KEY, S, type Row } from "@/lib/data"
+import { BY_KEY, S, type Chg, type Row } from "@/lib/data"
 import { areaText, subText } from "@/lib/text"
 
 // Saved listings live in this browser with a snapshot, so one that disappears from the data still shows what it was.
@@ -55,6 +55,7 @@ export type Detail = {
   memo?: string
   link?: [string, string]
   also?: [string, string]
+  hist?: Chg[]
 }
 export const shardOf = (key: string) => {
   let h = 0

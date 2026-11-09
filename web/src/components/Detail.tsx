@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Help } from "@/components/Help"
-import { DepSmall, FavButton, Photo, Term, ValueBadge } from "@/components/shared"
+import { ChangeLine, DepSmall, FavButton, Photo, Term, ValueBadge } from "@/components/shared"
 import { S, type Row } from "@/lib/data"
 import { score, totalText, type Med } from "@/lib/engine"
 import { loadShard, type Detail as D } from "@/lib/favs"
@@ -328,6 +328,14 @@ function Body({ r, d, failed, med }: { r: Row; d?: D; failed: boolean; med: (Med
               </>
             )}
           </section>
+          {!!d?.hist?.length && (
+            <section className="flex flex-col gap-2.5">
+              <H2>Changes, last 30 days</H2>
+              {[...d.hist].reverse().map((c) => (
+                <ChangeLine key={c[0]} c={c} className="text-base" />
+              ))}
+            </section>
+          )}
           {links.map(([n, u], i) => (
             <Button key={u} variant={i ? "outline" : "default"} size="xl" className="h-12 w-full" nativeButton={false} render={<a href={u} {...ext} />}>
               See this listing on {n}

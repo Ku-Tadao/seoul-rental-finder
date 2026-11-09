@@ -21,20 +21,21 @@ async function get(url) {
 }
 
 async function main() {
-  const ids = new Set();
+  const ids = new Map(); // rid -> its list row, which carries the current price
   for (let page = 1; ; page++) {
     const { rooms } = await get(`${API}?size=100&sortBy=RECOMMEND&page=${page}`);
-    for (const r of rooms.content) ids.add(r.rid);
+    for (const r of rooms.content) ids.set(r.rid, r);
     if (rooms.last || rooms.content.length === 0) break;
     await sleep(500);
   }
 
   // Keep one whole line per room still listed: a run killed at its time limit can leave a torn last line, and removed rooms would pile up.
+  // A room whose price or fee changed is fetched again.
   const have = new Map();
-  if (fs.existsSync(OUT)) for (const l of fs.readFileSync(OUT, 'utf8').split('\n')) { try { const { rid } = JSON.parse(l); if (ids.has(rid)) have.set(rid, l); } catch {} }
+  if (fs.existsSync(OUT)) for (const l of fs.readFileSync(OUT, 'utf8').split('\n')) { try { const d = JSON.parse(l), r = ids.get(d.rid); if (r && r.usingFee === d.usingFee && r.mgmtFee === d.mgmtFee) have.set(d.rid, l); } catch {} }
   fs.writeFileSync(OUT, [...have.values()].map(l => l + '\n').join(''));
 
-  const todo = [...ids].filter(id => !have.has(id));
+  const todo = [...ids.keys()].filter(id => !have.has(id));
   console.error(`${ids.size} listings, ${todo.length} to fetch`);
   let failed = 0, n = 0;
   const worker = async () => {

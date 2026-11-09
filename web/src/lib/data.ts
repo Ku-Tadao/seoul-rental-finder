@@ -10,8 +10,13 @@ export type Data = {
   stations: string[]
   stationAt: [number, number][]
   rows: unknown[][]
+  chg?: Record<string, Chg>
   foot?: string
 }
+
+// A listing's latest change (see track_changes.js): new, or [deposit, rent, maintenance] from → to, in 만원 (short term: a week).
+export type Money3 = [number, number, number | null]
+export type Chg = [number, "n"] | [number, Money3, Money3]
 
 export type Row = {
   key: string
@@ -40,6 +45,7 @@ export type Row = {
   also: number
   lat: number | null
   lng: number | null
+  chg?: Chg
   // Short term: weekly rent and fee, cleaning fee (won), min weeks, [weeks, % off], rating, reviews, property type.
   wRent: number
   wFee: number
@@ -72,7 +78,7 @@ export const S = DATA.site === "short"
 const COLS = ["key", "cat", "deal", "dep", "rent", "fee", "m2", "complex", "dong", "reg", "floor", "title", "short", "lh", "price", "partial", "age", "photo", "feeEst", "sizeEst", "beds", "subM", "sub", "also", "lat", "lng"]
 const SHORT_COLS = ["wRent", "wFee", "clean", "minW", "disc", "rating", "nRev", "pt"]
 const cols = S ? [...COLS, ...SHORT_COLS] : COLS
-export const ROWS: Row[] = DATA.rows.map((r) => Object.fromEntries(cols.map((c, i) => [c, r[i]])) as Row)
+export const ROWS: Row[] = DATA.rows.map((r) => ({ ...Object.fromEntries(cols.map((c, i) => [c, r[i]])), chg: DATA.chg?.[r[0] as string] }) as Row)
 export const BY_KEY = new Map(ROWS.map((r) => [r.key, r]))
 
 export const GROUPS = (() => {

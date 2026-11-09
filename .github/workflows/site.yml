@@ -20,6 +20,7 @@ env:
     dabang_rentals.json
     zigbang_ids.json
     zigbang_danjis.json
+    changes.json
 jobs:
   publish:
     runs-on: ubuntu-latest

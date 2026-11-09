@@ -2,7 +2,7 @@ import { cn } from "cn"
 
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { DepSmall, FavButton, Photo, Term, ValueBadge, distLine, termText } from "@/components/shared"
+import { ChangeLine, DepSmall, FavButton, Photo, Term, ValueBadge, distLine, termText } from "@/components/shared"
 import { S } from "@/lib/data"
 import { totalText, type X } from "@/lib/engine"
 import { ageShort, areaText, fx, money, priceText, rateText, roomsText, sizeText, typeText } from "@/lib/text"
@@ -51,6 +51,7 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
             <div className="font-semibold">Real cost {money(x.e)} a month</div>
           </>
         )}
+        {r.chg && <ChangeLine c={r.chg} />}
         <div className="mt-1 truncate font-medium">{r.complex}</div>
         <div className="text-sm leading-snug [overflow-wrap:anywhere] text-muted-foreground">
           {meta.map((m, i) => (

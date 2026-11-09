@@ -66,8 +66,8 @@ export function resetSection(f: Filters, sec: SecKey): Filters {
 export const snap = (k: string, v: number) => (SLIDERS[k].steps.includes(v) ? v : SLIDERS[k].def)
 
 export const SORTS = S
-  ? [["v", "Best value first"], ["e", "Lowest price"], ["r", "Top rated"], ["a", "Largest usable size"], ["d", "Lowest deposit"]]
-  : [["v", "Best value first"], ["e", "Lowest real cost"], ["a", "Largest usable size"], ["n", "Newest building"], ["d", "Lowest deposit"]]
+  ? [["v", "Best value first"], ["e", "Lowest price"], ["r", "Top rated"], ["a", "Largest usable size"], ["d", "Lowest deposit"], ["c", "Latest changes"]]
+  : [["v", "Best value first"], ["e", "Lowest real cost"], ["a", "Largest usable size"], ["n", "Newest building"], ["d", "Lowest deposit"], ["c", "Latest changes"]]
 export const sortOptions = (p: Place[]) => [...SORTS, ...p.flatMap((pl, i) => [["w" + i, "Good value near " + pl.name], ["p" + i, "Closest to " + pl.name]])]
 export const sortOf = (f: Filters) => (sortOptions(f.p).some(([v]) => v === f.o) ? f.o : "v")
 
@@ -264,6 +264,7 @@ export function compute(f: Filters): { out: X[]; med: (Med | null)[] } {
     d: (x) => x.r.dep,
     r: (x) => -(x.r.rating ?? 0) * 1e4 - x.r.nRev,
     n: (x) => x.r.age ?? 99,
+    c: (x) => -(x.r.chg?.[0] ?? 0),
     p0: (x) => x.pd[0] ?? Infinity,
     p1: (x) => x.pd[1] ?? Infinity,
     // Near and good value: each km away weighs like costing double the district median, so a bargain a bit further out can beat an average place next door.

@@ -5,9 +5,9 @@ import { cn } from "cn"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Help } from "@/components/Help"
-import { S, type Row } from "@/lib/data"
+import { S, type Chg, type Row } from "@/lib/data"
 import { badgeText, belowOf, shade, whyText, type Why, type X } from "@/lib/engine"
-import { HELP, dist, fx, metres, money, photoUrl, subText } from "@/lib/text"
+import { HELP, ago, changeText, dist, fx, metres, money, photoUrl, subText } from "@/lib/text"
 
 // Saved listings: which keys are starred, and the toggle. App provides it.
 export const FavsCtx = createContext<{ has: (k: string) => boolean; toggle: (k: string) => void }>({ has: () => false, toggle: () => {} })
@@ -73,6 +73,12 @@ export function distLine(r: Row, pd: (number | null)[] = []) {
     parts.push(`${p.name} ${dist(pd[i] ?? metres(r.lat, r.lng, p.at))}`)
   })
   return parts.join(" · ")
+}
+
+// Green when it got cheaper, red when dearer, plain for a new listing.
+export function ChangeLine({ c, className }: { c: Chg; className?: string }) {
+  const { text, dir } = changeText(c)
+  return <div className={cn("text-sm font-medium", dir < 0 ? "text-value-3" : dir > 0 ? "text-destructive" : "text-primary", className)}>{text} · {ago(c[0])}</div>
 }
 
 const WHY: [keyof Omit<Why, "area">, string, string][] = [
