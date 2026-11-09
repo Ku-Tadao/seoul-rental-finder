@@ -137,6 +137,8 @@ export const stayText = (w: number) => STAYS.find((s) => s[0] === w)?.[1] ?? w +
 export const rateText = (r: Row) => (r.rating ? `★ ${r.rating.toFixed(2)} (${r.nRev})` : "★ New")
 
 export const areaText = (r: Row) => r.areaText ?? `${dongText(r.dong)}, ${districtText(DATA.regions[r.reg].label)}`
+// Korean, so it pastes straight into Naver or Kakao Map: the saved full address, or district and neighbourhood.
+export const areaKo = (r: Row) => r.addr ?? (r.reg != null && DATA.regions[r.reg] ? DATA.regions[r.reg].label.split(" ").pop() + " " + r.dong : areaText(r))
 export const subText = (r: Row) => r.subText ?? stationName(DATA.stations[r.sub])
 export const hay = (r: Row) =>
   (r.hay ??= [r.complex, r.dong, dongText(r.dong), r.title, DATA.regions[r.reg].label, DATA.stations[r.sub], stationName(DATA.stations[r.sub])].join(" ").toLowerCase())

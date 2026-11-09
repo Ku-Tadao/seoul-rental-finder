@@ -65,20 +65,20 @@ export const Term = ({ r }: { r: Row }) => (
 )
 export const DepSmall = ({ r }: { r: Row }) => (r.deal ? <small className="text-sm font-medium tracking-normal text-muted-foreground">{r.dep ? "+ " + money(r.dep) + " deposit" : "no deposit"}</small> : null)
 
-// Nearest station, then your places, as on the card.
-export function distLine(r: Row, pd: (number | null)[] = []) {
-  const parts = S && r.subM > 3000 ? [] : [`${subText(r)} ${dist(r.subM)}`] // short term is nationwide, beyond the subway
+// Nearest station, then your places, as on the card: [name, distance, is one of your places].
+export function distParts(r: Row, pd: (number | null)[] = []) {
+  const parts: [string, string, boolean][] = S && r.subM > 3000 ? [] : [[subText(r), dist(r.subM), false]] // short term is nationwide, beyond the subway
   fx.places.forEach((p, i) => {
     if (r.lat == null || r.lng == null || p.name === subText(r)) return
-    parts.push(`${p.name} ${dist(pd[i] ?? metres(r.lat, r.lng, p.at))}`)
+    parts.push([p.name, dist(pd[i] ?? metres(r.lat, r.lng, p.at)), true])
   })
-  return parts.join(" · ")
+  return parts
 }
 
 // Green when it got cheaper, red when dearer, plain for a new listing.
 export function ChangeLine({ c, className }: { c: Chg; className?: string }) {
   const { text, dir } = changeText(c)
-  return <div className={cn("text-sm font-medium", dir < 0 ? "text-value-3" : dir > 0 ? "text-destructive" : "text-primary", className)}>{text} · {ago(c[0])}</div>
+  return <div className={cn("text-sm font-medium", dir < 0 ? "text-value-3 dark:text-green-400" : dir > 0 ? "text-destructive dark:text-red-400" : "text-primary", className)}>{text} · {ago(c[0])}</div>
 }
 
 const WHY: [keyof Omit<Why, "area">, string, string][] = [
