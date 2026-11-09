@@ -87,6 +87,14 @@ export const dongText = (d: string) => {
 }
 export const districtText = (label: string) => (/[A-Za-z]/.test(label) ? label.split(" ")[0] : rom(label.replace(/[시군구]$/, "")))
 
+// Complex names in English. Brand names read better as the builders spell them; the rest is romanised, and an address reads like the area tag.
+const BRAND: Record<string, string> = { 힐스테이트: "Hillstate", 푸르지오: "Prugio", 래미안: "Raemian", 더샵: "The Sharp", 아이파크: "IPark", 센트레빌: "Centreville", 롯데캐슬: "Lotte Castle", e편한세상: "e-Pyunhansesang", 데시앙: "Desian", 위브: "We've", 꿈에그린: "Kkumegreen", 자이: "Xi", 아크로: "Acro", 써밋: "Summit", 디에이치: "The H", 시그니처: "Signature", 퍼스트: "First", 스카이: "Sky", 센트럴: "Central", 파크: "Park", 포레스트: "Forest", 포레: "Foret", 타워: "Tower", 시티: "City", 오피스텔: "Officetel", 캐슬: "Castle", 팰리스: "Palace", 하이츠: "Heights", 리버: "River", 레이크: "Lake", 에코: "Eco", 비스타: "Vista", 뷰: "View", 그랜드: "Grand", 프리미어: "Premier", 빌리지: "Village", 어바니티: "Urbanity", 헤리티지: "Heritage", 스위트: "Suite", 타운: "Town", 월드: "World", 골드: "Gold", 그린: "Green", 엑스포: "Expo", 에디션: "Edition", 역: "Stn" }
+// Longest first, so 포레스트 wins over 포레; 역 (station) only splits between two longer words, not inside 역삼.
+const BRAND_RE = new RegExp(`(${Object.keys(BRAND).sort((x, y) => y.length - x.length).map((k) => (k === "역" ? "(?<=[가-힣]{2})역(?=[가-힣]{2})" : k)).join("|")})`)
+const wordText = (w: string) =>
+  /(동|읍|면|리|\d가)$/.test(w) ? dongText(w) : /..[시군구]$/.test(w) ? rom(w.slice(0, -1)) + "-" + rom(w.slice(-1)).toLowerCase() : w.split(BRAND_RE).filter(Boolean).map((p) => BRAND[p] ?? rom(p)).join(" ")
+export const nameText = (r: Row) => (S ? r.complex : r.complex.replace(/\(.*?\)/g, "").replace(/(\d+)단지/g, " Complex $1 ").replace(/([\d,]+)차/g, " Phase $1 ").split(" ").filter(Boolean).map(wordText).join(" ") || r.complex)
+
 // Korean terms, explained on hover and on tap.
 export const HELP: Record<string, string> = {
   jeonse: "Deposit only: you pay one large deposit instead of monthly rent, and get it back when you move out. Koreans call this jeonse (전세).",

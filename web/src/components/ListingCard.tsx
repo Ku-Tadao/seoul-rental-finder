@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react"
-import { BedDoubleIcon, Building2Icon, BuildingIcon, CalendarClockIcon, CheckIcon, DoorOpenIcon, HouseIcon, InfoIcon, LayersIcon, MapPinIcon, NavigationIcon, RulerIcon, SparklesIcon, StoreIcon, TrainFrontIcon, TriangleAlertIcon, UsersIcon, type LucideIcon } from "lucide-react"
+import { BedDoubleIcon, Building2Icon, BuildingIcon, CalendarClockIcon, CheckIcon, CopyIcon, DoorOpenIcon, HouseIcon, InfoIcon, LayersIcon, MapPinIcon, PercentIcon, NavigationIcon, RulerIcon, SparklesIcon, StoreIcon, TrainFrontIcon, TriangleAlertIcon, UsersIcon, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
 
 import { Badge } from "@/components/ui/badge"
@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { ChangeLine, DepSmall, FavButton, Photo, Term, ValueBadge, distParts, termText } from "@/components/shared"
 import { S, type Row } from "@/lib/data"
 import { totalText, type X } from "@/lib/engine"
-import { areaKo, areaText, dist, floorText, fx, money, priceText, rateText, roomsText, sizeText, typeText, walkText } from "@/lib/text"
+import { areaKo, areaText, dist, floorText, fx, money, nameText, priceText, rateText, roomsText, sizeText, stayText, typeText, walkText } from "@/lib/text"
 
 const TYPE_ICON: Record<string, LucideIcon> = { OFFICETEL: BuildingIcon, STUDIO: DoorOpenIcon, APARTMENT: Building2Icon, VILLA: HouseIcon, DETACHED: HouseIcon, MIXED_USE: StoreIcon, GOSIWON: DoorOpenIcon, SHARE_HOUSE: UsersIcon }
 const typeIcon = (r: Row) => (S ? (TYPE_ICON[r.pt] ?? DoorOpenIcon) : r.cat ? BuildingIcon : Building2Icon)
@@ -79,8 +79,10 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
     .filter(Boolean)
     .join(" · ")
   const near = distParts(r, x.pd)
+  // Short term: the next discount a longer stay would get, beyond the one already in the total.
+  const more = S ? r.disc.filter(([, p]) => p > x.off).sort((a, b) => a[0] - b[0])[0] : undefined
   return (
-    <Card className={cn("relative isolate min-w-0 gap-0 py-0", gone && "opacity-55")}>
+    <Card className={cn("relative isolate min-w-0 gap-0 py-0 transition-[translate,box-shadow] duration-200", gone ? "opacity-55" : "hover:shadow-lg hover:ring-foreground/20 motion-safe:hover:-translate-y-0.5")}>
       {/* No photo: a short strip, grown to match a photo card beside it in the grid. */}
       <div className={cn("relative flex flex-col", !r.photo && "grow")}>
         <Photo r={r} gone={gone} className="aspect-4/3 has-[span]:aspect-auto has-[span]:min-h-24 has-[span]:grow [&>span]:hidden" />
@@ -93,7 +95,7 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
           <ValueBadge x={x} className="absolute bottom-3 left-3 z-2" />
         )}
       </div>
-      {!gone && <a href={"#" + r.key} aria-label={"Open " + r.complex} className="absolute inset-0 z-1 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />}
+      {!gone && <a href={"#" + r.key} aria-label={"Open " + nameText(r)} className="absolute inset-0 z-1 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />}
       <FavButton k={r.key} className="absolute top-2 right-2 z-2" />
       <div className="flex min-w-0 flex-col gap-1.5 p-3.5">
         {S ? (
@@ -114,12 +116,20 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
           </>
         )}
         {r.chg && <ChangeLine c={r.chg} />}
-        <div className="mt-1 truncate font-medium">{r.complex}</div>
+        <div className="mt-1 truncate font-medium" title={r.complex}>
+          {nameText(r)}
+        </div>
         <div className="flex flex-wrap gap-1">
           <Fact icon={typeIcon(r)}>{typeText(r)}</Fact>
           <Fact icon={RulerIcon}>{sizeText(r)}</Fact>
           {r.beds ? <Fact icon={BedDoubleIcon}>{roomsText(r)}</Fact> : null}
           {floorText(r.floor) && <Fact icon={LayersIcon}>{floorText(r.floor)}</Fact>}
+          {more && (
+            <Fact icon={PercentIcon} hi>
+              {more[1]}% off from {stayText(more[0])}
+            </Fact>
+          )}
+          {!S && r.also ? <Fact icon={CopyIcon}>On both sites</Fact> : null}
           {!S && r.age !== null && (r.age === 0 ? <Fact icon={SparklesIcon} hi>New build</Fact> : <Fact icon={CalendarClockIcon}>{r.age + (r.age === 1 ? " yr" : " yrs")}</Fact>)}
         </div>
         <div className="flex flex-col gap-0.5 text-sm leading-snug [overflow-wrap:anywhere] text-muted-foreground">

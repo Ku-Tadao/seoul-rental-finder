@@ -25,11 +25,12 @@ export function FavButton({ k, className, size = "icon-xl" }: { k: string; class
 // A listing photo, or a house outline when there is none or it fails to load.
 export function Photo({ r, className, alt = r.complex, eager, gone, text = "No photo on this listing" }: { r: Row; className?: string; alt?: string; eager?: boolean; gone?: boolean; text?: string }) {
   const [failed, setFailed] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const ok = r.photo && !failed
   return (
-    <div className={cn("relative flex items-center justify-center overflow-hidden bg-secondary text-sm text-muted-foreground", className)}>
+    <div className={cn("relative flex items-center justify-center overflow-hidden bg-secondary text-sm text-muted-foreground", ok && !loaded && "animate-pulse", className)}>
       {ok ? (
-        <img src={photoUrl(r)} alt={alt} loading={eager ? undefined : "lazy"} decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} className={cn("size-full object-cover", gone && "grayscale")} />
+        <img src={photoUrl(r)} alt={alt} loading={eager ? undefined : "lazy"} decoding="async" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} className={cn("size-full object-cover transition-opacity duration-300", !loaded && "opacity-0", gone && "grayscale")} />
       ) : (
         <span className="flex flex-col items-center gap-2 text-center">
           <HouseIcon aria-hidden className="size-9 opacity-60" strokeWidth={1.5} />
