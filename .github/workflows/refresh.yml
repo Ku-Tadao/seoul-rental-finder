@@ -17,6 +17,7 @@ concurrency:
   cancel-in-progress: false
 env:
   # Raw data stays in the private Actions cache because its free text still holds agent contact details; only the scrubbed site is published.
+  # The cache version is a hash of this list, so any edit orphans every saved cache: the next refresh starts from scratch, and publish fails until it ends. Keep site.yml's copy identical.
   STATE: |
     *.jsonl
     dabang_rentals.json
