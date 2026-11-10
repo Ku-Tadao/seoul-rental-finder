@@ -15,6 +15,7 @@ permissions:
   pages: write
   id-token: write
 env:
+  # Must match refresh.yml exactly, or no cache is found (see the note there).
   STATE: |
     *.jsonl
     dabang_rentals.json

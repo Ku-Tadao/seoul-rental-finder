@@ -298,6 +298,7 @@ function main() {
     return regionIdx.get(key);
   };
 
+  assert.ok(fs.existsSync('dabang_rentals.json'), 'no scraped data: the state cache was not restored (its path list changed, or it expired), so run Refresh listings first');
   const lists = new Map(JSON.parse(fs.readFileSync('dabang_rentals.json', 'utf8')).map(r => [r.id, r]));
   const danjiOf = new Map();
   if (fs.existsSync('zigbang_danjis.json')) for (const d of JSON.parse(fs.readFileSync('zigbang_danjis.json', 'utf8'))) for (const id of d.items) danjiOf.set(id, d);
