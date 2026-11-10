@@ -74,8 +74,8 @@ const Pairs = ({ rows }: { rows: [ReactNode, ReactNode][] }) => (
     ))}
   </div>
 )
-const H2 = ({ children }: { children: ReactNode }) => <h2 className="text-lg font-bold">{children}</h2>
-const H3 = ({ children }: { children: ReactNode }) => <h3 className="mt-2 font-bold">{children}</h3>
+const H2 = ({ children }: { children: ReactNode }) => <h2 className="text-xl font-semibold">{children}</h2>
+const H3 = ({ children }: { children: ReactNode }) => <h3 className="mt-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{children}</h3>
 const ext = { target: "_blank", rel: "noopener" }
 
 function Gallery({ r, d }: { r: Row; d?: D }) {
@@ -101,13 +101,13 @@ function Gallery({ r, d }: { r: Row; d?: D }) {
       </div>
       {n > 1 && (
         <>
-          <Button variant="secondary" size="icon-xl" className="absolute top-1/2 left-2 -mt-5.5 rounded-full" aria-label="Previous photo" onClick={() => slide(-1)}>
+          <Button variant="secondary" size="icon-xl" className="glass-card absolute top-1/2 left-3 -mt-5.5 rounded-full shadow-card ring-1 ring-foreground/8" aria-label="Previous photo" onClick={() => slide(-1)}>
             <ChevronLeftIcon />
           </Button>
-          <Button variant="secondary" size="icon-xl" className="absolute top-1/2 right-2 -mt-5.5 rounded-full" aria-label="Next photo" onClick={() => slide(1)}>
+          <Button variant="secondary" size="icon-xl" className="glass-card absolute top-1/2 right-3 -mt-5.5 rounded-full shadow-card ring-1 ring-foreground/8" aria-label="Next photo" onClick={() => slide(1)}>
             <ChevronRightIcon />
           </Button>
-          <span className="absolute right-3 bottom-3 rounded-md bg-black/75 px-2.5 py-1 text-[13px] font-semibold text-white">
+          <span className="absolute right-3 bottom-3 rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-white tabular-nums ring-1 ring-white/15 backdrop-blur-md">
             {i + 1} / {n}
           </span>
         </>
@@ -137,7 +137,7 @@ function SpotMap({ at, label }: { at: [number, number]; label: string }) {
     }
   }, [at[0], at[1]]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={ref} aria-label={"Map of " + label} className="relative isolate h-60 overflow-hidden rounded-xl bg-muted">
+    <div ref={ref} aria-label={"Map of " + label} className="relative isolate h-60 overflow-hidden rounded-2xl bg-muted ring-1 ring-foreground/8">
       {failed && <p className="p-4 text-muted-foreground">Couldn't load the map.</p>}
     </div>
   )
@@ -191,7 +191,7 @@ function Body({ r, d, failed, med }: { r: Row; d?: D; failed: boolean; med: (Med
         ]) as [ReactNode, string][]),
   ]
   const head = (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2 tabular-nums">
       <ValueBadge x={x} className="self-start" />
       {S ? (
         <>
@@ -214,12 +214,12 @@ function Body({ r, d, failed, med }: { r: Row; d?: D; failed: boolean; med: (Med
           </div>
         </>
       )}
-      <Collapsible className="mt-1 border-y py-2.5">
+      <Collapsible className="mt-2 rounded-2xl bg-muted px-4 py-3">
         <CollapsibleTrigger className="group flex min-h-7 w-full items-center justify-between font-semibold">
           How this is worked out
-          <ChevronDownIcon className="size-4 transition-transform group-data-panel-open:rotate-180" />
+          <ChevronDownIcon className="size-4 text-muted-foreground transition-transform duration-300 ease-out-soft group-data-panel-open:rotate-180" />
         </CollapsibleTrigger>
-        <CollapsibleContent className="pt-2">
+        <CollapsibleContent className="pt-2.5 text-[15px]">
           <Pairs rows={how} />
         </CollapsibleContent>
       </Collapsible>
@@ -228,9 +228,9 @@ function Body({ r, d, failed, med }: { r: Row; d?: D; failed: boolean; med: (Med
   const tileEl = (
     <section className="grid grid-cols-4 gap-2">
       {tiles.map(([v, l], i) => (
-        <div key={i} className="flex min-w-0 flex-col gap-0.5 rounded-xl bg-muted px-2 py-2.5">
-          <b className="font-bold">{v}</b>
-          <span className="text-[13px] leading-tight text-muted-foreground">{l}</span>
+        <div key={i} className="flex min-w-0 flex-col gap-1 rounded-2xl bg-muted px-3 py-3">
+          <b className="text-[17px] font-semibold tracking-tight">{v}</b>
+          <span className="text-xs leading-tight text-muted-foreground">{l}</span>
         </div>
       ))}
     </section>
@@ -337,7 +337,7 @@ function Body({ r, d, failed, med }: { r: Row; d?: D; failed: boolean; med: (Med
             </section>
           )}
           {links.map(([n, u], i) => (
-            <Button key={u} variant={i ? "outline" : "default"} size="xl" className="h-12 w-full" nativeButton={false} render={<a href={u} {...ext} />}>
+            <Button key={u} variant={i ? "outline" : "default"} size="xl" className="h-13 w-full rounded-full text-base font-semibold" nativeButton={false} render={<a href={u} {...ext} />}>
               See this listing on {n}
             </Button>
           ))}
@@ -375,16 +375,16 @@ export function Detail({ r, med, onClose, onLoaded }: { r: Row | null; med: (Med
       <DialogContent
         ref={scroller}
         showCloseButton={false}
-        className="top-0 left-0 block h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-none bg-card p-0 text-base ring-0 sm:max-w-none min-[720px]:top-1/2 min-[720px]:left-1/2 min-[720px]:h-auto min-[720px]:max-h-[calc(100dvh-48px)] min-[720px]:w-[min(1040px,calc(100vw-48px))] min-[720px]:-translate-x-1/2 min-[720px]:-translate-y-1/2 min-[720px]:rounded-2xl min-[720px]:ring-1"
+        className="top-0 left-0 block h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-none bg-card p-0 text-base ring-0 sm:max-w-none min-[720px]:top-1/2 min-[720px]:left-1/2 min-[720px]:h-auto min-[720px]:max-h-[calc(100dvh-48px)] min-[720px]:w-[min(1040px,calc(100vw-48px))] min-[720px]:-translate-x-1/2 min-[720px]:-translate-y-1/2 min-[720px]:rounded-3xl min-[720px]:shadow-[0_40px_120px_-20px_rgb(0_0_0/0.55)] min-[720px]:ring-1 min-[720px]:ring-foreground/10"
       >
         {r && (
           <>
-            <div className="sticky top-0 z-3 flex items-center gap-2 bg-card px-2 pt-[max(6px,env(safe-area-inset-top))] pb-1.5">
+            <div className="glass-card sticky top-0 z-3 flex items-center gap-2 border-b border-border/60 px-2 pt-[max(6px,env(safe-area-inset-top))] pb-1.5">
               <Button variant="ghost" size="icon-xl" aria-label="Back to the list" onClick={onClose}>
                 <ChevronLeftIcon className="size-6" />
               </Button>
               <DialogTitle className="min-w-0 flex-1 truncate text-base font-semibold">{r.complex}</DialogTitle>
-              <FavButton k={r.key} className="bg-transparent" />
+              <FavButton k={r.key} className="bg-transparent shadow-none ring-0 backdrop-filter-none" />
             </div>
             <Body r={r} d={s?.d} failed={!!s?.failed} med={med} />
           </>

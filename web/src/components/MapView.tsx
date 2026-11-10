@@ -134,7 +134,7 @@ export function MapView({ results, med, shown, picking, onPick }: { results: X[]
   }, [results, med, state, shown])
 
   return (
-    <div ref={box} hidden={!shown} className="relative isolate min-h-80 overflow-hidden rounded-xl bg-muted" style={{ height: `calc(100dvh - ${top}px - 16px)` }}>
+    <div ref={box} hidden={!shown} className="relative isolate min-h-80 overflow-hidden rounded-3xl bg-muted shadow-card ring-1 ring-foreground/8" style={{ height: `calc(100dvh - ${top}px - 16px)` }}>
       {state !== "ready" && <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-muted-foreground">{state === "failed" ? "Couldn't load the map. Check your connection and try again." : "Loading the map…"}</p>}
       <div ref={el} className="size-full" />
       {mini && (
@@ -145,7 +145,7 @@ export function MapView({ results, med, shown, picking, onPick }: { results: X[]
           ))}
         </Card>
       )}
-      {picking && <div className="absolute top-3 left-1/2 z-1000 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-semibold whitespace-nowrap text-primary-foreground shadow-md">Tap the map where your place is</div>}
+      {picking && <div className="absolute top-3 left-1/2 z-1000 -translate-x-1/2 glass-card rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap shadow-card-hover ring-1 ring-foreground/10">Tap the map where your place is</div>}
     </div>
   )
 }

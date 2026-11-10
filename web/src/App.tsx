@@ -165,9 +165,9 @@ export function App() {
   const tabs = !!(DATA.site || DATA.short) // no short-term data yet, so no page to switch to
 
   const seg = (
-    <ToggleGroup aria-label="View" value={[view === "map" ? "map" : "list"]} onValueChange={(v: string[]) => v[0] && setView(v[0] as View)} className="flex-none rounded-xl bg-secondary p-1" spacing={0}>
+    <ToggleGroup aria-label="View" value={[view === "map" ? "map" : "list"]} onValueChange={(v: string[]) => v[0] && setView(v[0] as View)} className="flex-none rounded-full bg-secondary p-1" spacing={0}>
       {(["list", "map"] as const).map((v) => (
-        <ToggleGroupItem key={v} value={v} size="lg" className="h-9.5 rounded-[9px]! px-4 aria-pressed:bg-card aria-pressed:font-semibold">
+        <ToggleGroupItem key={v} value={v} size="lg" className="h-9.5 rounded-full! px-5 text-muted-foreground transition-all duration-300 aria-pressed:bg-card aria-pressed:font-semibold aria-pressed:text-foreground aria-pressed:shadow-card">
           {v === "list" ? "List" : "Map"}
         </ToggleGroupItem>
       ))}
@@ -197,13 +197,15 @@ export function App() {
 
   return (
     <FavsCtx.Provider value={favApi}>
-      <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 lg:flex-nowrap lg:px-6">
-        <h1 className="flex items-center gap-2 text-base font-bold lg:text-lg tracking-tight">
-          <HouseIcon aria-hidden className="size-6 flex-none text-value-3" />
+      <header className="glass flex flex-wrap items-center justify-between gap-3 px-4 py-2 lg:sticky lg:top-0 lg:z-10 lg:flex-nowrap lg:border-b lg:border-border/60 lg:px-6">
+        <h1 className="flex items-center gap-2.5 text-base font-semibold lg:text-[17px]">
+          <span aria-hidden className="flex size-8 flex-none items-center justify-center rounded-[10px] bg-linear-to-b from-value-2 to-value-3 text-on-value shadow-card ring-1 ring-white/15 ring-inset">
+            <HouseIcon className="size-4.5" strokeWidth={2.25} />
+          </span>
           Seoul Rental Value Finder
         </h1>
         {tabs && (
-          <nav aria-label="Rental length" className="order-3 flex flex-1 basis-[calc(100%-56px)] rounded-xl bg-secondary p-1 lg:order-none lg:flex-none lg:basis-auto">
+          <nav aria-label="Rental length" className="order-3 flex flex-1 basis-[calc(100%-56px)] rounded-full bg-secondary p-1 lg:order-none lg:flex-none lg:basis-auto">
             {(["long", "short"] as const).map((t) => {
               const here = t === (DATA.site ?? "long")
               return (
@@ -211,7 +213,7 @@ export function App() {
                   key={t}
                   href={here ? "./" : DATA.site ? "../" : t + "/"} // relative, so it works under a GitHub Pages project path
                   aria-current={here ? "page" : undefined}
-                  className="flex h-9.5 flex-1 items-center justify-center rounded-[9px] px-4 text-sm font-medium whitespace-nowrap aria-[current=page]:bg-card aria-[current=page]:font-semibold"
+                  className="flex h-9.5 flex-1 items-center justify-center rounded-full px-5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-all duration-300 hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:font-semibold aria-[current=page]:text-foreground aria-[current=page]:shadow-card"
                 >
                   {t === "long" ? "Long term" : "Short term"}
                 </a>
@@ -230,17 +232,17 @@ export function App() {
         </div>
       </header>
       {!wide && view !== "saved" && (
-        <div className="sticky top-0 z-5 bg-background px-4">
+        <div className="glass sticky top-0 z-5 px-4">
           <ChipBar f={f} onOpen={setSheet} />
         </div>
       )}
-      <div className="flex items-start gap-6 px-4 pb-8 lg:px-6">
+      <div className="flex items-start gap-6 px-4 pb-10 lg:px-6 lg:pt-4">
         {wide && view !== "saved" && <Aside {...secProps} />}
         <main className="flex min-w-0 flex-1 flex-col gap-3">
           {view === "saved" && <SavedHead items={savedItems} keys={[...favs.keys()]} />}
           {view !== "saved" && (
             <>
-              <div className="sticky top-[60px] z-4 flex items-center justify-between gap-3 bg-background lg:static">
+              <div className="glass sticky top-[60px] z-4 -mx-4 flex items-center justify-between gap-3 px-4 max-lg:border-b max-lg:border-border/60 lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:backdrop-filter-none">
                 {sortEl}
                 {!wide && seg}
               </div>
@@ -250,7 +252,7 @@ export function App() {
           {mapOpened && <MapView results={results} med={med} shown={view === "map"} picking={picking} onPick={onPick} />}
           {view === "list" &&
             (n ? (
-              <div className="grid gap-4 lg:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] lg:gap-4.5">
+              <div className="grid gap-4 lg:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] lg:gap-5">
                 {results.slice(0, shown).map((x) => (
                   <ListingCard key={x.r.key} x={x} />
                 ))}
@@ -265,7 +267,7 @@ export function App() {
             ))}
           {view === "saved" && <Saved items={savedItems} wide={wide} />}
           {view === "list" && <div ref={sentinel} />}
-          {view === "list" && <p className="mt-3 max-w-[78ch] text-[13px] leading-normal text-muted-foreground">{FOOT}</p>}
+          {view === "list" && <p className="mt-8 max-w-[78ch] border-t border-border/60 pt-5 text-xs leading-relaxed text-pretty text-muted-foreground">{FOOT}</p>}
         </main>
       </div>
       {!wide && <Sheet {...secProps} sec={sheet} onClose={() => setSheet(null)} count={n} />}

@@ -37,7 +37,7 @@ export function SavedHead({ items, keys }: { items: SavedItem[]; keys: string[] 
   }
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-      <h2 className="text-[22px] font-bold">{items.length === 1 ? "1 saved listing" : items.length + " saved listings"}</h2>
+      <h2 className="text-[28px] font-semibold tracking-tight">{items.length === 1 ? "1 saved listing" : items.length + " saved listings"}</h2>
       {items.some((i) => !i.gone) && (
         <Button variant="outline" size="xl" onClick={share}>
           {text}
@@ -48,7 +48,7 @@ export function SavedHead({ items, keys }: { items: SavedItem[]; keys: string[] 
 }
 
 const Sub = ({ children }: { children: ReactNode }) => <small className="block text-sm font-normal text-muted-foreground">{children}</small>
-const Big = ({ children }: { children: ReactNode }) => <b className="text-2xl font-bold">{children}</b>
+const Big = ({ children }: { children: ReactNode }) => <b className="text-2xl font-semibold tracking-tight tabular-nums">{children}</b>
 
 // Saved listings: cards on phones, a side-by-side comparison on desktop.
 export function Saved({ items, wide }: { items: SavedItem[]; wide: boolean }) {
@@ -94,7 +94,7 @@ export function Saved({ items, wide }: { items: SavedItem[]; wide: boolean }) {
               <TableHead key={r.key} scope="col" className={cn(cell, "h-auto pt-0", gone && "opacity-55")}>
                 <div className="flex flex-col gap-1">
                   <div className="relative mb-1.5">
-                    <Photo r={r} gone={gone} className="aspect-4/3 rounded-2xl" />
+                    <Photo r={r} gone={gone} className="aspect-4/3 rounded-2xl shadow-card ring-1 ring-foreground/8" />
                     <FavButton k={r.key} className="absolute top-2 right-2" />
                   </div>
                   {gone ? (

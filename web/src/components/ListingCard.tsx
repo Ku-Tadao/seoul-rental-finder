@@ -14,7 +14,7 @@ const typeIcon = (r: Row) => (S ? (TYPE_ICON[r.pt] ?? DoorOpenIcon) : r.cat ? Bu
 
 function Fact({ icon: Icon, children, hi }: { icon: LucideIcon; children: ReactNode; hi?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium", hi ? "bg-value-3 text-on-value" : "bg-muted text-foreground/80")}>
+    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium", hi ? "bg-value-3 text-on-value" : "bg-muted text-foreground/80")}>
       <Icon aria-hidden className="size-3.5 flex-none" />
       {children}
     </span>
@@ -58,7 +58,7 @@ function AreaTag({ r }: { r: Row }) {
           setTimeout(() => setCopied(false), 1500)
         })
       }
-      className="absolute top-2.5 left-2.5 z-2 flex max-w-[calc(100%-3.75rem)] animate-in cursor-copy items-center gap-1.5 overflow-hidden rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm duration-300 fade-in slide-in-from-top-3 hover:bg-black/65 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="absolute top-2.5 left-2.5 z-2 flex max-w-[calc(100%-3.75rem)] animate-in cursor-copy items-center gap-1.5 overflow-hidden rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium text-white ring-1 ring-white/15 backdrop-blur-md backdrop-saturate-150 duration-300 fade-in slide-in-from-top-3 hover:bg-black/65 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <span key={String(copied)} className="flex min-w-0 animate-in items-center gap-1.5 duration-200 fade-in zoom-in-90">
         {copied ? <CheckIcon aria-hidden className="size-3.5 flex-none text-green-400" /> : <MapPinIcon aria-hidden className="size-3.5 flex-none" />}
@@ -82,10 +82,10 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
   // Short term: the next discount a longer stay would get, beyond the one already in the total.
   const more = S ? r.disc.filter(([, p]) => p > x.off).sort((a, b) => a[0] - b[0])[0] : undefined
   return (
-    <Card className={cn("relative isolate min-w-0 gap-0 py-0 transition-[translate,box-shadow] duration-200", gone ? "opacity-55" : "hover:shadow-lg hover:ring-foreground/20 motion-safe:hover:-translate-y-0.5")}>
+    <Card className={cn("relative isolate min-w-0 gap-0 rounded-2xl py-0 shadow-card ring-foreground/8 transition-[translate,box-shadow] duration-500 ease-out-soft", gone ? "opacity-55" : "hover:shadow-card-hover hover:ring-foreground/15 motion-safe:hover:-translate-y-1")}>
       {/* No photo: a short strip, grown to match a photo card beside it in the grid. */}
       <div className={cn("relative flex flex-col", !r.photo && "grow")}>
-        <Photo r={r} gone={gone} className="aspect-4/3 has-[span]:aspect-auto has-[span]:min-h-24 has-[span]:grow [&>span]:hidden" />
+        <Photo r={r} gone={gone} className="aspect-4/3 has-[span]:aspect-auto has-[span]:min-h-32 has-[span]:grow has-[span]:bg-linear-to-b has-[span]:from-secondary has-[span]:to-muted [&>span]:pt-6 [&>span]:text-xs [&>span]:opacity-70" />
         <AreaTag r={r} />
         {gone ? (
           <Badge variant="none" size="lg" className="absolute bottom-3 left-3 z-2">
@@ -95,9 +95,9 @@ export function ListingCard({ x, gone }: { x: X; gone?: boolean }) {
           <ValueBadge x={x} className="absolute bottom-3 left-3 z-2" />
         )}
       </div>
-      {!gone && <a href={"#" + r.key} aria-label={"Open " + nameText(r)} className="absolute inset-0 z-1 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />}
+      {!gone && <a href={"#" + r.key} aria-label={"Open " + nameText(r)} className="absolute inset-0 z-1 rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />}
       <FavButton k={r.key} className="absolute top-2 right-2 z-2" />
-      <div className="flex min-w-0 flex-col gap-1.5 p-3.5">
+      <div className="flex min-w-0 flex-col gap-1.5 p-4 tabular-nums">
         {S ? (
           <>
             <div className="flex flex-wrap items-baseline gap-x-1.5 text-xl font-bold tracking-tight">

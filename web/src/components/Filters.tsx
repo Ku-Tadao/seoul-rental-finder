@@ -327,7 +327,7 @@ function Areas({ f, set }: SecProps) {
 // Desktop: every section in a sticky sidebar, folded to one line that shows its current value. Budget and anything you've changed start open.
 function Sec({ title, value, open, children }: { title: string; value: string; open: boolean; children: ReactNode }) {
   return (
-    <Collapsible defaultOpen={open} className="border-t pt-3">
+    <Collapsible defaultOpen={open} className="border-t border-border/60 pt-3">
       <CollapsibleTrigger className="group flex min-h-9 w-full items-center justify-between gap-3 text-left">
         <h3 className="text-base font-bold">{title}</h3>
         <span className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
@@ -348,7 +348,7 @@ export function Aside(p: SecProps) {
     return k === "more" ? (v ? v + " changed" : "Defaults") : k === "places" ? (v ?? "None") : (v ?? "Any")
   }
   return (
-    <aside className="sticky top-[76px] flex max-h-[calc(100dvh-92px)] w-75 flex-none flex-col gap-3 overflow-y-auto rounded-2xl border bg-card p-5 [scrollbar-width:thin]">
+    <aside className="sticky top-[76px] flex max-h-[calc(100dvh-92px)] w-75 flex-none flex-col gap-3 overflow-y-auto rounded-3xl bg-card p-5 shadow-card ring-1 ring-foreground/8 [scrollbar-width:thin]">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Filters</h2>
         <Button variant="ghost" size="xl" onClick={() => p.set((f) => ({ ...defaults(), u: f.u }))}>

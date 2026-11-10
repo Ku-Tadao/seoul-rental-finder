@@ -16,8 +16,8 @@ export function FavButton({ k, className, size = "icon-xl" }: { k: string; class
   const favs = useContext(FavsCtx)
   const on = favs.has(k)
   return (
-    <Button type="button" variant="secondary" size={size} aria-pressed={on} aria-label="Save this listing" className={cn("rounded-full", className)} onClick={() => favs.toggle(k)}>
-      <StarIcon className={cn("size-5", on && "fill-current")} />
+    <Button type="button" variant="secondary" size={size} aria-pressed={on} aria-label="Save this listing" className={cn("glass-card rounded-full shadow-card ring-1 ring-foreground/8", className)} onClick={() => favs.toggle(k)}>
+      <StarIcon className={cn("size-5 transition-[scale,color] duration-300 ease-out-soft", on && "scale-110 fill-current text-amber-500")} />
     </Button>
   )
 }
@@ -30,7 +30,7 @@ export function Photo({ r, className, alt = r.complex, eager, gone, text = "No p
   return (
     <div className={cn("relative flex items-center justify-center overflow-hidden bg-secondary text-sm text-muted-foreground", ok && !loaded && "animate-pulse", className)}>
       {ok ? (
-        <img src={photoUrl(r)} alt={alt} loading={eager ? undefined : "lazy"} decoding="async" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} className={cn("size-full object-cover transition-opacity duration-300", !loaded && "opacity-0", gone && "grayscale")} />
+        <img src={photoUrl(r)} alt={alt} loading={eager ? undefined : "lazy"} decoding="async" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} className={cn("size-full object-cover transition-[opacity,scale] duration-700 ease-out-soft motion-safe:group-hover/card:scale-[1.04]", !loaded && "opacity-0", gone && "grayscale")} />
       ) : (
         <span className="flex flex-col items-center gap-2 text-center">
           <HouseIcon aria-hidden className="size-9 opacity-60" strokeWidth={1.5} />
